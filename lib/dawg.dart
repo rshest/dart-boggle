@@ -36,9 +36,19 @@ class Dawg {
 
   Dawg(Iterable<String> words) {
     root = new DawgNode();
+    String prevWord = "";
     for (String word in words) {
+      assert(word.compareTo(prevWord) >= 0);
       root.insertWord(word);
+      prevWord = word;
     }
   }
   
+  static List<String> parseDictionary(String dict) {
+    var re = new RegExp("q(?!u)");
+    return dict.split(' ')
+               .where((s) => !re.hasMatch(s))
+               .map((s) => s.trim().toLowerCase().replaceAll('qu', 'q'))
+               .toList()..sort();   
+  }
 }

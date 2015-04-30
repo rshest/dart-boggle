@@ -2,8 +2,6 @@ library boggle;
 import 'dart:math';
 import 'dawg.dart';
 
-const DEFAULT_DICE = 'SGECAAREMECGNTDOYSPJNOICD';
-
 class _Face {
   static const NUM_NEIGHBORS = 8;
   final neighbors = new List<int>(NUM_NEIGHBORS); // clockwise, from top
@@ -15,15 +13,22 @@ class _Face {
 }
 
 class Boggle {
-  final width, height, N;
+  final int width, height, N;
   final List<_Face> faces;
+  int score;
   
   static const OFFX = const [0, 1, 1, 1, 0, -1, -1, -1];
   static const OFFY = const [-1, -1, 0, 1, 1, 1, 0, -1];   
   static offsets(int w) =>
     [-w, -w + 1, 1, w + 1, w, w - 1, -1, -w - 1];
+  static const DEFAULT_DICE = 'SGECAAREMECGNTDOYSPJNOICD';
   
   get letterList => faces.map((f) => f.char.toUpperCase());
+  get letters => letterList.join('');
+  
+  set letterList(List<int> lst) {
+    for (int i = 0; i < N; i++) faces[i].code = lst[i];
+  }
   
   set letters(String s) {
     assert(s.length == N);
@@ -32,7 +37,7 @@ class Boggle {
   
   static int rate(int n) => [0, 1, 2, 3, 5, 11][max(0, min(5, n - 3))];
   
-  Boggle([String dice = null, w = 5, h = 5]) :
+  Boggle([String dice = null, int w = 5, int h = 5]) :
     width = w, height = h, N = w*h, 
     faces = new List<_Face>(w*h)
   {
@@ -48,8 +53,9 @@ class Boggle {
           face.neighbors[j] = cx + cy*w;
       }
     }
-    if (dice == null) dice = DEFAULT_DICE;
-    letters = dice.toLowerCase();
+    if (dice != null) {
+      letters = dice.toLowerCase();
+    }
   }
     
   collectMatches(_Face face, DawgNode node, var path, var depth, wordCallback) {
@@ -106,6 +112,19 @@ class Boggle {
     int res = 0;
     traverseBoard(dawg, (path, depth) {
       res += Boggle.rate(depth);
+    });
+    return res;
+  }
+  
+  int getNonRepeatScore(Dawg dawg) {
+    int res = 0;
+    var found = new Set<String>();
+    traverseBoard(dawg, (path, depth) {
+      var s = path.take(depth).map((i)=>faces[i].char).join('');
+      if (!found.contains(s)) { 
+        res += Boggle.rate(depth);
+        found.add(s);
+      }
     });
     return res;
   }

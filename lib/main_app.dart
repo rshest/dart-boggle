@@ -24,17 +24,18 @@ class MainApp extends PolymerElement {
   makeBoard() => boggle.letterList.map((s)=> new Face(s)).toList();
     
   set letters(String s) {
+    if (s == null) s = Boggle.DEFAULT_DICE;
     boggle = new Boggle(s);
     boards = [makeBoard()];
   }
   
   set curWord(String word) {
-    if (word == null) {
+    var w = (word == null) ? "" : word.trim().split('[')[0].replaceAll('qu', 'q');
+    var paths = boggle.getWordPaths(w);
+    if (paths.length == 0) {
       boards = [makeBoard()];
       return;
     }
-    var w = word.trim().split('[')[0].replaceAll('qu', 'q');
-    var paths = boggle.getWordPaths(w);
     boards = [];
     for (var path in paths) {
       var board = makeBoard(); 
@@ -51,7 +52,7 @@ class MainApp extends PolymerElement {
     
   gatherMatchingWords() {
     var mw = boggle.getMatchingWords(dawg);
-    score = boggle.getTotalScore(dawg);   
+    score = boggle.getNonRepeatScore(dawg);   
     var uw = {};
     for (var w in mw) {
       uw.putIfAbsent(w, () => 0);
@@ -61,8 +62,6 @@ class MainApp extends PolymerElement {
     for (var w in uw.keys) {
       int nocc = uw[w];
       words.add(nocc == 1 ? w : "${w.replaceAll('q', 'qu')}[${nocc}]"); 
-      //  fixup the score to exclude duplicates
-      score -= Boggle.rate(w.length)*(nocc - 1);
     }
   }
   
@@ -71,15 +70,7 @@ class MainApp extends PolymerElement {
     //  load the dictionary
     HttpRequest.getString('data/words.txt').then((String dict) {
       letters = Uri.base.queryParameters['letters'];
-      //  parse the dictionary
-      var re = new RegExp("q(?!u)");
-      var wordList = dict
-          .split(' ')
-          .where((s) => !re.hasMatch(s))
-          .map((s) => s.trim().toLowerCase().replaceAll('qu', 'q'))
-          .toList()
-          ..sort();
-      dawg = new Dawg(wordList);
+      dawg = new Dawg(Dawg.parseDictionary(dict));
       gatherMatchingWords();      
       curWord = Uri.base.queryParameters['word'];
     });

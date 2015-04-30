@@ -2,6 +2,8 @@ import 'package:unittest/unittest.dart';
 import 'package:unittest/html_enhanced_config.dart';
 import 'package:dart_boggle/dawg.dart';
 import 'package:dart_boggle/boggle.dart';
+import 'package:dart_boggle/grinder.dart';
+
 
 testDawg() {
   test("Single word", () {
@@ -103,7 +105,6 @@ testGetMatchingWords(die, w, h, match, notmatch) {
 }
 
 testBoggle() {
-  
   test("3x2 - Neighbors", () {
     var boggle = new Boggle('AAAAAA', 3, 2);
     
@@ -142,9 +143,21 @@ testBoggle() {
 
   test("Score", () {
     var boggle = new Boggle('carnta', 3, 2);
-    var dawg = new Dawg(['can', 'car', 'carat', 'cart', 'caratn', 'dart']);
+    var dawg = new Dawg(['can', 'car', 'carat', 'caratn', 'cart', 'dart']);
     int score = boggle.getTotalScore(dawg);    
     expect(score, equals(6));    
+  });
+}
+
+testGrinder() {
+  String seed = 'AAAA';
+  String dict = "catz";
+  var dawg = new Dawg(Dawg.parseDictionary(dict));
+  var dice = Grinder.parseDice("cccccc\naaaaaa\ntttttt\nzzzzzz");
+  var grinder = new Grinder(dice, dawg, 2, 2);
+  Boggle board = grinder.grind(seed, 1);
+  test("SmallGrind", () {
+    expect(board.getTotalScore(dawg), equals(1));
   });
 }
 
@@ -157,5 +170,9 @@ void main() {
 
   group('Boggle', () {
     testBoggle();
+  });
+  
+  group('Grinder', () {
+    testGrinder();
   });
 }
