@@ -1,53 +1,21 @@
 <link rel="import" href="../../packages/polymer/polymer.html">
-<link rel="import" href="../../packages/paper_elements/paper_input.html">
 
 <polymer-element name="main-app">
   <template>
     <style>
-      :host {
-        display: block;
-      }  
-      .dietext {
-        position:absolute; 
-        padding: 0px;
-        width:32px; 
-        height:32px;
-        font-size: 26px;
-        font-weigth: bold;
-        vertical-align: middle;
-      }
-      .dieface {
-        position: relative; 
-        width:32px; 
-        height:32px; 
-      }
-      .diebg {
-        position:absolute; 
-        left:-16px; 
-        top:-16px; 
-      }
-      .diebg {
-        position:absolute; 
-        left:-16px; 
-        top:-16px; 
-      }
-      .word {
-        cursor: pointer;
-      }
-      .word:hover {
-        color: #444444;
-        background-color:#ffec9f;
-      }
-      .board {
-        margin: 4px;
-        border: 1px solid gray;
-        background: #eeeeee;
-      }
+    :host { display: block; }  
+    .dietext { position:absolute; padding:0px; width:32px; vertical-align:middle;
+      font-size:26px; font-weigth:bold; }
+    .dieface { position:relative; width:32px; height:32px; }
+    .diebg { position:absolute; left:-16px; top:-16px; }
+    .wordlist { margin:8px; }
+    .word { cursor:pointer; }
+    .word:hover { background-color:#ffec9f; }
+    .board { margin:4px; border:1px solid gray; background:#eeeeee; }
     </style>
-    <span>Words: {{words.length}}, Score: {{score}}</span>
     <div horizontal layout>
       <template repeat="{{board in boards}}">
-        <div class="board" horizontal layout wrap style="width: 160px">
+        <div class="board" horizontal layout wrap style="width:160px">
           <template repeat="{{face in board}}">
             <div class="dieface">
               <img class="diebg" _src="/images/die{{face.direction}}.png">
@@ -57,10 +25,12 @@
         </div>  
       </template>          
     </div>
-
-    <template repeat="{{word in words}}">
-      <span class="word" on-mouseover='{{onHovered}}'>{{word}}</span>
-    </template>      
+    <div>Words: <b>{{words.length}}, </b> Score: <b>{{score}}</b></div>
+    <div class="wordlist">
+      <template repeat="{{word in words}}">
+        <span class="word" on-mouseover='{{onHovered}}'>{{word}}</span>
+      </template>      
+    </div>
   </template>
   <script type="application/dart" src="main_app.dart"></script>
 </polymer-element>

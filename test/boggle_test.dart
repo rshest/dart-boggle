@@ -13,52 +13,81 @@ testDawg() {
     expect(dawg.root.children.length, equals(1));
     
     expect(c.children.length, equals(1));
-    expect(c.terminal, equals(false));
+    expect(c.terminal, isFalse);
     
     expect(a.children.length, equals(1));
-    expect(a.terminal, equals(false));
+    expect(a.terminal, isFalse);
 
     expect(t.children.length, equals(0));
-    expect(t.terminal, equals(true));
+    expect(t.terminal, isTrue);
   });
 
   test("Two different words, contains", () {
     var dawg = new Dawg(['one', 'two']);
     
     expect(dawg.root.children.length, equals(2));
-    expect(dawg.contains('one'), equals(true));
-    expect(dawg.contains('two'), equals(true));
-    expect(dawg.contains('ones'), equals(false));
-    expect(dawg.contains('on'), equals(false));
-    expect(dawg.contains('tree'), equals(false));
-    expect(dawg.contains('four'), equals(false));
+    expect(dawg.contains('one'), isTrue);
+    expect(dawg.contains('two'), isTrue);
+    expect(dawg.contains('ones'), isFalse);
+    expect(dawg.contains('on'), isFalse);
+    expect(dawg.contains('tree'), isFalse);
+    expect(dawg.contains('four'), isFalse);
   });
 
   
   test("Common prefix", () {
-      var dawg = new Dawg(['can', 'car', 'carat', 'cart', 'cat']);
-      expect(dawg.contains('can'), equals(true));
-      expect(dawg.contains('car'), equals(true));
-      expect(dawg.contains('cat'), equals(true));
-      expect(dawg.contains('carat'), equals(true));
-      expect(dawg.contains('cart'), equals(true));
-      expect(dawg.contains('cara'), equals(false));
+    var dawg = new Dawg(['can', 'car', 'carat', 'cart', 'cat']);
+    expect(dawg.contains('can'), isTrue);
+    expect(dawg.contains('car'), isTrue);
+    expect(dawg.contains('cat'), isTrue);
+    expect(dawg.contains('carat'), isTrue);
+    expect(dawg.contains('cart'), isTrue);
+    expect(dawg.contains('cara'), isFalse);
 
-      expect(dawg.root.children.length, equals(1));
+    expect(dawg.root.children.length, equals(1));
 
-      var c = dawg.root.child('c');
-      expect(c.children.length, equals(1));
+    var c = dawg.root.child('c');
+    expect(c.children.length, equals(1));
 
-      var a = c.child('a');
-      expect(a.children.length, equals(3));
+    var a = c.child('a');
+    expect(a.children.length, equals(3));
   });
-  /*
+  
   test("Common suffix", () {
-        var dawg = new Dawg(["cat", "fat", "mat"]);
-        expect(dawg.root.children.length, equals(3));
-        expect(dawg.root.isTerminal, equals(false));
+    var dawg = new Dawg(["cat", "fat", "mat"]);
+    expect(dawg.root.children.length, equals(3));
+    expect(dawg.root.terminal, isFalse);
+    
+    var c = dawg.root.child('c');
+    var f = dawg.root.child('f');
+    var m = dawg.root.child('m');
+        
+    expect(c.children.length, equals(1));
+    expect(f.children.length, equals(1));
+    expect(m.children.length, equals(1));
+
+    expect(c.terminal, isFalse);
+    expect(f.terminal, isFalse);
+    expect(m.terminal, isFalse);
+
+    var ca = c.child('a');
+    var fa = f.child('a');
+    var ma = m.child('a');
+    
+    expect(ca.children.length, equals(1));
+    expect(fa.children.length, equals(1));
+    expect(ma.children.length, equals(1));
+
+    expect(identical(ca, fa), isTrue, reason:'Nodes should be collapsed');
+    expect(identical(ma, fa), isTrue, reason:'Nodes should be collapsed');
+
+    expect(ma.terminal, isFalse);
+    
+    var t = f.child('t');
+    expect(t.terminal, isTrue);
+    expect(t.children.length, equals(0));
   });
-  */  
+  
 }
 
 testGetMatchingWords(die, w, h, match, notmatch) {

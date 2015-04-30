@@ -22,9 +22,7 @@ class DawgNode {
   }
   
   bool contains(String word, [int startChar = 0]) {
-    if (startChar == word.length) {
-      return terminal;
-    }
+    if (startChar == word.length) return terminal;
     int key = word.codeUnitAt(startChar);
     var child = children[key];
     if (child == null) return false;
@@ -34,7 +32,6 @@ class DawgNode {
 
 class Dawg {
   DawgNode root;
-
   get contains => root.contains;
 
   Dawg(Iterable<String> words) {

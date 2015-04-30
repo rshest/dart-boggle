@@ -2,7 +2,6 @@ import 'dart:html';
 import 'package:polymer/polymer.dart';
 import 'dawg.dart';
 import 'boggle.dart';
-import 'grind.dart';
 
 const DEFAULT_LETTERS = 'SGECAAREMECGNTDOYSPJNOICD';
 const END_PATH = 9;
@@ -85,8 +84,6 @@ class MainApp extends PolymerElement {
       curWord = Uri.base.queryParameters['word'];
     });
   }
-  
-  onHovered(MouseEvent event) {
-    curWord = (event.target as Element).innerHtml;
-  }
+
+  onHovered(MouseEvent event) => curWord = (event.target as Element).innerHtml;
 }
