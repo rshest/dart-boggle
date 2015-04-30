@@ -24,5 +24,5 @@ void main(List<String> arguments)  {
   var dice = Grinder.parseDice(readFile("./web/data/dice.txt"));
   var grinder = new Grinder(dice, dawg);
   print((new Boggle(seed)).getNonRepeatScore(dawg));
-  grinder.grind(lastLaser);
+  grinder.grind("ok see you tomorrow");
 }
