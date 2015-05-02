@@ -1,8 +1,6 @@
 import 'dart:math';
 import 'package:unittest/unittest.dart';
 import 'package:unittest/html_enhanced_config.dart';
-import 'package:dart_boggle/util.dart';
-import 'package:dart_boggle/dawg.dart';
 import 'package:dart_boggle/boggle.dart';
 import 'package:dart_boggle/grinder.dart';
 
@@ -16,14 +14,14 @@ testUtil() {
   });
 }
 
-testDawg() {
+testTrie() {
   test("Single word", () {
-    var dawg = new Dawg(['cat', 'cat']);
-    var c = dawg.root.child('c');
+    var trie = new Trie(['cat', 'cat']);
+    var c = trie.root.child('c');
     var a = c.child('a');
     var t = a.child('t');
     
-    expect(dawg.root.children.length, equals(1));
+    expect(trie.root.children.length, equals(1));
     
     expect(c.children.length, equals(1));
     expect(c.terminal, isFalse);
@@ -36,30 +34,30 @@ testDawg() {
   });
 
   test("Two different words, contains", () {
-    var dawg = new Dawg(['one', 'two']);
+    var trie = new Trie(['one', 'two']);
     
-    expect(dawg.root.children.length, equals(2));
-    expect(dawg.contains('one'), isTrue);
-    expect(dawg.contains('two'), isTrue);
-    expect(dawg.contains('ones'), isFalse);
-    expect(dawg.contains('on'), isFalse);
-    expect(dawg.contains('tree'), isFalse);
-    expect(dawg.contains('four'), isFalse);
+    expect(trie.root.children.length, equals(2));
+    expect(trie.contains('one'), isTrue);
+    expect(trie.contains('two'), isTrue);
+    expect(trie.contains('ones'), isFalse);
+    expect(trie.contains('on'), isFalse);
+    expect(trie.contains('tree'), isFalse);
+    expect(trie.contains('four'), isFalse);
   });
 
   
   test("Common prefix", () {
-    var dawg = new Dawg(['can', 'car', 'carat', 'cart', 'cat']);
-    expect(dawg.contains('can'), isTrue);
-    expect(dawg.contains('car'), isTrue);
-    expect(dawg.contains('cat'), isTrue);
-    expect(dawg.contains('carat'), isTrue);
-    expect(dawg.contains('cart'), isTrue);
-    expect(dawg.contains('cara'), isFalse);
+    var trie = new Trie(['can', 'car', 'carat', 'cart', 'cat']);
+    expect(trie.contains('can'), isTrue);
+    expect(trie.contains('car'), isTrue);
+    expect(trie.contains('cat'), isTrue);
+    expect(trie.contains('carat'), isTrue);
+    expect(trie.contains('cart'), isTrue);
+    expect(trie.contains('cara'), isFalse);
 
-    expect(dawg.root.children.length, equals(1));
+    expect(trie.root.children.length, equals(1));
 
-    var c = dawg.root.child('c');
+    var c = trie.root.child('c');
     expect(c.children.length, equals(1));
 
     var a = c.child('a');
@@ -67,13 +65,13 @@ testDawg() {
   });
   
   test("Common suffix", () {
-    var dawg = new Dawg(["cat", "fat", "mat"]);
-    expect(dawg.root.children.length, equals(3));
-    expect(dawg.root.terminal, isFalse);
+    var trie = new Trie(["cat", "fat", "mat"]);
+    expect(trie.root.children.length, equals(3));
+    expect(trie.root.terminal, isFalse);
     
-    var c = dawg.root.child('c');
-    var f = dawg.root.child('f');
-    var m = dawg.root.child('m');
+    var c = trie.root.child('c');
+    var f = trie.root.child('f');
+    var m = trie.root.child('m');
         
     expect(c.children.length, equals(1));
     expect(f.children.length, equals(1));
@@ -105,12 +103,12 @@ testDawg() {
 
 testGetMatchingWords(die, w, h, match, notmatch) {
   var dict = []..addAll(match)..addAll(notmatch)..sort();
-  var dawg = new Dawg(dict);
+  var trie = new Trie(dict);
   
   var boggle = new Boggle(die, w, h);
   
   test("${w}x${h}[${dict.length}] - getMatchingWords", () {
-    var mw = boggle.getMatchingWords(dawg);
+    var mw = boggle.getMatchingWords(trie);
     expect(mw, unorderedEquals(match));
   });
 }
@@ -154,18 +152,18 @@ testBoggle() {
 
   test("Score", () {
     var boggle = new Boggle('carnta', 3, 2);
-    var dawg = new Dawg(['can', 'car', 'carat', 'caratn', 'cart', 'dart']);
-    int score = boggle.getTotalScore(dawg);    
+    var trie = new Trie(['can', 'car', 'carat', 'caratn', 'cart', 'dart']);
+    int score = boggle.getTotalScore(trie);    
     expect(score, equals(6));    
   });
   
   test("Init random", () {
     String dict = "catz";
-    var dawg = new Dawg(Dawg.parseDictionary(dict));
+    var trie = new Trie(Trie.parseDictionary(dict));
     var dice = Boggle.parseDice("cccccc\naaaaaa\nzzzzzz\ntttttt");
     Boggle board = new Boggle(null, 2, 2);
     Random random = new Random();
-    board.initRandom(dawg, dice, 4, random);    
+    board.initRandom(trie, dice, 4, random);    
     expect(board.letters, equals("CAZT"));  
   });
   
@@ -233,12 +231,12 @@ ooottu''';
 testGrinder() {
   String seed = 'AAAA';
   String dict = "catz";
-  var dawg = new Dawg(Dawg.parseDictionary(dict));
+  var trie = new Trie(Trie.parseDictionary(dict));
   var dice = Boggle.parseDice("cccccc\naaaaaa\ntttttt\nzzzzzz");
-  var grinder = new Grinder(dice, dawg, 2, 2);
+  var grinder = new Grinder(dice, trie, 2, 2);
   Boggle board = grinder.grind(seed, 1);
   test("SmallGrind", () {
-    expect(board.getTotalScore(dawg), equals(1));
+    expect(board.getTotalScore(trie), equals(1));
   });
 }
 
@@ -249,8 +247,8 @@ void main() {
     testUtil();
   });
   
-  group('Dawg', () {
-    testDawg();
+  group('Trie', () {
+    testTrie();
   });
 
   group('Boggle', () {

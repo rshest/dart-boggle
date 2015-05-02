@@ -1,6 +1,5 @@
 import 'dart:html';
 import 'package:polymer/polymer.dart';
-import 'dawg.dart';
 import 'boggle.dart';
 
 const DEFAULT_LETTERS = 'SGECAAREMECGNTDOYSPJNOICD';
@@ -18,7 +17,7 @@ class MainApp extends PolymerElement {
   @observable List<List<Face>> boards;
   @observable int score = 0;
   
-  Dawg dawg;
+  Trie trie;
   Boggle boggle;
   
   makeBoard() => boggle.letterList.map((s)=> new Face(s)).toList();
@@ -51,8 +50,8 @@ class MainApp extends PolymerElement {
   }
     
   gatherMatchingWords() {
-    var mw = boggle.getMatchingWords(dawg);
-    score = boggle.getTotalScore(dawg);   
+    var mw = boggle.getMatchingWords(trie);
+    score = boggle.getTotalScore(trie);   
     var uw = {};
     for (var w in mw) {
       uw.putIfAbsent(w, () => 0);
@@ -71,7 +70,7 @@ class MainApp extends PolymerElement {
     //  load the dictionary
     HttpRequest.getString('data/words.txt').then((String dict) {
       letters = Uri.base.queryParameters['letters'];
-      dawg = new Dawg(Dawg.parseDictionary(dict));
+      trie = new Trie(Trie.parseDictionary(dict));
       gatherMatchingWords();      
       curWord = Uri.base.queryParameters['word'];
     });

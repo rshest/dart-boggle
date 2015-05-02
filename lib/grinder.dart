@@ -1,10 +1,7 @@
 library grinder;
 
 import 'dart:math';
-
-import 'dawg.dart';
 import 'boggle.dart';
-import 'util.dart';
 
 const int MUTATE_INIT = 0;
 const int MUTATE_SWAP = 1;
@@ -12,41 +9,41 @@ const int MUTATE_ROLL = 2;
 const int MUTATE_FLIP = 3;
 
 const POOL_SIZE = 100;
-final int NUM_MUTATE = (POOL_SIZE*0.9).floor();
-final int MAX_MUTATE_DEPTH = 3;
-final int MAX_PLATEAU_EPOCH = 10000000~/POOL_SIZE;
+final int NUM_MUTATE = (POOL_SIZE * 0.99).floor();
+final int MAX_MUTATE_DEPTH = 10;
+final int MAX_PLATEAU_EPOCH = 10000000 ~/ POOL_SIZE;
 
 class _Gene {
   final List<int> letters;
   final List<Die> dice;
-    
+
   int score = 0;
-  _Gene(n, dice) : 
-    letters = new List<int>(n), 
-    dice = new List<Die>(n) {
+  _Gene(n, dice)
+      : letters = new List<int>(n),
+        dice = new List<Die>(n) {
     for (int i = 0; i < n; i++) {
       this.dice[i] = dice[i];
     }
   }
-  
-  set letters(Iterable<int> lst) {
+
+  setLetters(Iterable<int> lst) {
     int i = 0;
-    for (var c in lst) { 
+    for (var c in lst) {
       letters[i] = c;
       i++;
     }
   }
-  
-  void copyFrom(_Gene g) { 
-    letters = g.letters; 
-    for (int i = 0; i < g.dice.length; i++) dice[i] = g.dice[i];  
+
+  void copyFrom(_Gene g) {
+    setLetters(g.letters);
+    for (int i = 0; i < g.dice.length; i++) dice[i] = g.dice[i];
   }
-  
+
   void swapDice(int k1, int k2) {
     int c = letters[k1];
     letters[k1] = letters[k2];
     letters[k2] = c;
-    
+
     Die d = dice[k1];
     dice[k1] = dice[k2];
     dice[k2] = d;
@@ -59,26 +56,28 @@ class Grinder {
   final int BOARD_W, BOARD_H, NFACES;
 
   List<Die> dice;
-  Dawg dawg;
+  Trie trie;
   Random random;
 
-  Grinder(this.dice, this.dawg, [int w = 5, int h = 5]) :
-    BOARD_W = w, BOARD_H = h, NFACES = w*h;
+  Grinder(this.dice, this.trie, [int w = 5, int h = 5])
+      : BOARD_W = w,
+        BOARD_H = h,
+        NFACES = w * h;
 
   static getString(List<int> lst) =>
       lst.map((s) => new String.fromCharCode(s)).join('');
 
-   grind(String seed, [int maxEpoch = 1000000]) {
+  grind(String seed, [int maxEpoch = 1000000]) {
     Boggle board = new Boggle(null, BOARD_W, BOARD_H);
-    
+
     initGene(_Gene g) {
       g.dice.shuffle(random);
-      board.initRandom(dawg, g.dice, NFACES, random, random.nextInt(NFACES));
+      board.initRandom(trie, g.dice, NFACES, random, random.nextInt(NFACES));
       for (int i = 0; i < NFACES; i++) {
         g.letters[i] = board.faces[i].code;
       }
     }
-    
+
     initPool(int size) {
       var pool = new List<_Gene>(size);
       for (int i = 0; i < size; i++) {
@@ -87,7 +86,7 @@ class Grinder {
       }
       return pool;
     }
-  
+
     random = new Random(seed.hashCode);
     List<_Gene> pool = initPool(POOL_SIZE);
     List<_Gene> prevPool = initPool(POOL_SIZE);
@@ -106,7 +105,7 @@ class Grinder {
       // evaluate the genes
       for (var g in pool) {
         board.letterList = g.letters;
-        g.score = board.getTotalScore(dawg);
+        g.score = board.getTotalScore(trie);
       }
       //  sort by score (best ones first)
       pool.sort((g1, g2) => g2.score - g1.score);
@@ -117,13 +116,14 @@ class Grinder {
       for (int i = 0; i < POOL_SIZE; i++) {
         int s = pool[i].score;
         // favour better fit genes more
-        int ss = pow(10*s/score, 5).toInt(); 
+        int ss = pow(10 * s / score, 5).toInt();
         scores[i] = ss;
         sumScore += ss;
       }
 
       if (score > bestScore) {
-        print("Epoch: ${epoch}[${run}], Time: ${stopwatch.elapsed}, Score: ${score} (${pool[1].score}, ${pool[2].score}), Letters: ${getString(pool[0].letters)}, Dice: [${pool[0].diceStr}]");
+        print(
+            "Epoch: ${epoch}[${run}], Time: ${stopwatch.elapsed}, Score: ${score} (${pool[1].score}, ${pool[2].score}), Letters: ${getString(pool[0].letters)}, Dice: [${pool[0].diceStr}]");
         plateau = 0;
         bestScore = score;
       } else {
@@ -151,7 +151,7 @@ class Grinder {
       int curGene = 0;
       //  retain the best gene through
       pool[0].copyFrom(prevPool[0]);
-                    
+
       //  mutate the genes
       for (int i = 0; i < NUM_MUTATE; i++) {
         var g = pool[curGene];
@@ -164,8 +164,8 @@ class Grinder {
         if (mtype == MUTATE_INIT) {
           //  reinit a path on the board according to probailities
           board.letterList = g.letters;
-          board.initRandom(dawg, g.dice, depth, random, mutateCell);
-          g.letters = board.faces.map((f) => f.code);
+          board.initRandom(trie, g.dice, depth, random, mutateCell);
+          g.setLetters(board.faces.map((f) => f.code));
         } else if (mtype == MUTATE_FLIP) {
           //  rotate a random die
           while (depth > 0) {
