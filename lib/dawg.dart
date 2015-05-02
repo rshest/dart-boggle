@@ -3,7 +3,7 @@ import 'dart:collection';
 
 class DawgNode {
   bool terminal = false;
-  int pathCount = 1;
+  int pathCount = 0;
   final Map<int, DawgNode> children = new Map();
   
   child(String s) => children[s.codeUnitAt(0)];
@@ -18,9 +18,8 @@ class DawgNode {
     if (child == null) {
       child = new DawgNode();
       children[key] = child;
-    } else {
-      child.pathCount++;
-    }
+    } 
+    child.pathCount++;
     child.insertWord(word, startChar + 1);
   }
   

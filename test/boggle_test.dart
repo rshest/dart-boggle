@@ -1,9 +1,20 @@
+import 'dart:math';
 import 'package:unittest/unittest.dart';
 import 'package:unittest/html_enhanced_config.dart';
+import 'package:dart_boggle/util.dart';
 import 'package:dart_boggle/dawg.dart';
 import 'package:dart_boggle/boggle.dart';
 import 'package:dart_boggle/grinder.dart';
 
+testUtil() {
+  test("Pick random weighted", () {
+    var rnd = new Random(123);
+    expect(pickRandomW(rnd, [1000000, 1, 1, 1, 1, 1], null), equals(0));
+    expect(pickRandomW(rnd, [1, 1, 1, 1, 1000000, 1], null), equals(4));
+    expect(pickRandomW(rnd, [0, 0, 0, 0, 0, 1], null), equals(5));
+    expect(pickRandomW(rnd, [0, 1, 0, 0, 0, 0], null), equals(1));
+  });
+}
 
 testDawg() {
   test("Single word", () {
@@ -147,13 +158,57 @@ testBoggle() {
     int score = boggle.getTotalScore(dawg);    
     expect(score, equals(6));    
   });
+  
+  test("Init random", () {
+    String dict = "catz";
+    var dawg = new Dawg(Dawg.parseDictionary(dict));
+    var dice = Boggle.parseDice("cccccc\naaaaaa\nzzzzzz\ntttttt");
+    Boggle board = new Boggle(null, 2, 2);
+    Random random = new Random();
+    board.initRandom(dawg, dice, 4, random);    
+    expect(board.letters, equals("CAZT"));  
+  });
+  
+  test("firtDice", () {
+    //var letters = 'oinetntrcsseaiomndlviocer';
+    var letters = 'nelehdarctoitancnseggterh';
+    var diceStr = '''
+aaafrs
+aaeeee
+aafirs
+adennn
+aeeeem
+aeegmu
+aegmnn
+afirsy
+bjkqxz
+ccenst
+ceiilt
+ceilpt
+ceipst
+ddhnot
+dhhlor
+dhlnor
+dhlnor
+eiiitt
+emottt
+ensssu
+fiprsy
+gorrvw
+iprrry
+nootuw
+ooottu''';
+    var dice = Boggle.parseDice(diceStr);
+    var boggle = new Boggle(letters, 5, 5);
+    var res = boggle.fitDice(dice);
+  });
 }
 
 testGrinder() {
   String seed = 'AAAA';
   String dict = "catz";
   var dawg = new Dawg(Dawg.parseDictionary(dict));
-  var dice = Grinder.parseDice("cccccc\naaaaaa\ntttttt\nzzzzzz");
+  var dice = Boggle.parseDice("cccccc\naaaaaa\ntttttt\nzzzzzz");
   var grinder = new Grinder(dice, dawg, 2, 2);
   Boggle board = grinder.grind(seed, 1);
   test("SmallGrind", () {
@@ -163,6 +218,10 @@ testGrinder() {
 
 void main() {
   useHtmlEnhancedConfiguration();
+ 
+  group('Util', () {
+    testUtil();
+  });
   
   group('Dawg', () {
     testDawg();

@@ -1,6 +1,13 @@
 library boggle;
 import 'dart:math';
 import 'dawg.dart';
+import 'util.dart';
+
+class Die {
+  List<int> faces;
+  int id;
+  Die(this.faces);
+}
 
 class _Face {
   static const NUM_NEIGHBORS = 8;
@@ -36,6 +43,18 @@ class Boggle {
   } 
   
   static int rate(int n) => [0, 1, 2, 3, 5, 11][max(0, min(5, n - 3))];
+  
+  static List<Die> parseDice(String desc) {
+    var res = desc.split('\n')
+    .map((s) =>
+        s.trim().split('').map((t) => t.codeUnitAt(0)).toList())
+    .map((s)=> new Die(s))
+    .toList();
+    for (int i = 0; i < res.length; i++) {
+      res[i].id = i;
+    }
+    return res;
+  }
   
   Boggle([String dice = null, int w = 5, int h = 5]) :
     width = w, height = h, N = w*h, 
@@ -90,6 +109,49 @@ class Boggle {
     }
   }
   
+  bool initRandom(Dawg dawg, List<Die> dice, int num, 
+                  Random random, [int startCell = 0]) {
+    if (num == null) num = N;
+    
+    initRandomBranch(DawgNode node, int startCell) {
+      var die = dice[startCell];
+      int nDieFaces = die.faces.length;
+      var prob = new List<int>(nDieFaces);    
+      int numValid = 0;
+      for (int i = 0; i < nDieFaces; i++) {
+        var d = die.faces[i];
+        var p = node.children[d];
+        if (p == null) { 
+          prob[i] = 0; 
+        } else {
+          prob[i] = p.pathCount;
+          assert(p.pathCount > 0);
+          numValid++;
+        }
+      }
+      if (numValid == 0) return;
+      int charIdx = pickRandomW(random, prob, null);
+      var char = die.faces[charIdx];
+      var face = faces[startCell];
+      face.code = char;
+      face.visited = true;
+      num--;
+      if (num == 0) return;
+      
+      //  depth-first recur into neighbors
+      for (int neighbor in face.neighbors) {
+        if (neighbor != null && !faces[neighbor].visited) {
+          var cnode = node.children[char];
+          assert(cnode != null);
+          initRandomBranch(cnode, neighbor);
+          if (num == 0) return;
+        }
+      }
+    }
+    initRandomBranch(dawg.root, startCell);
+    faces.forEach((f) => f.visited = false);
+  }
+  
   List<String> getMatchingWords(Dawg dawg) {
     var res = [];
     traverseBoard(dawg, (path, depth) {
@@ -126,6 +188,28 @@ class Boggle {
         found.add(s);
       }
     });
+    return res;
+  }
+  
+  List<int> fitDice(List<Die> dice) {
+    if (N != dice.length) return null;
+    var res = new List<int>(N);
+    
+    var mapping = new Map<int, Set<int>>();
+    for (int i = 0; i < dice.length; i++) {
+      var die = dice[i];
+      for (var d in die) {
+        if (!mapping.containsKey(d)) {
+          mapping[d] = new Set<int>();
+        }
+        mapping[d].add(i);
+      }
+    }
+    
+    for (var f in faces) {
+      print("${f.char}:${mapping[f.code]}");
+    }
+    
     return res;
   }
 }
