@@ -6,11 +6,15 @@ import 'dawg.dart';
 import 'boggle.dart';
 import 'util.dart';
 
+const int MUTATE_INIT = 0;
+const int MUTATE_SWAP = 1;
+const int MUTATE_ROLL = 2;
+const int MUTATE_FLIP = 3;
+
 const POOL_SIZE = 100;
-const int MAX_FLIPS = 1;
 final int NUM_MUTATE = (POOL_SIZE*0.95).floor();
-final int MAX_MUTATE_DEPTH = 3;
-final int MAX_PLATEAU_EPOCH = 10000000~/POOL_SIZE;
+final int MAX_MUTATE_DEPTH = 5;
+final int MAX_PLATEAU_EPOCH = 1000000~/POOL_SIZE;
 
 class _Gene {
   final List<int> letters;
@@ -112,21 +116,23 @@ class Grinder {
       int sumScore = 0;
       for (int i = 0; i < POOL_SIZE; i++) {
         int s = pool[i].score;
-        // to favour better fit genes more
-        int ss = pow(10*s/score, 5).toInt(); 
+        // favour better fit genes more
+        int ss = pow(10*s/score, 4).toInt(); 
         scores[i] = ss;
         sumScore += ss;
       }
 
       if (score > bestScore) {
-        print("Epoch: ${epoch}[${run}], Elapsed: ${stopwatch.elapsed}, Score: ${score} (${pool[1].score}, ${pool[2].score}), Letters: ${getString(pool[0].letters)}, Dice: [${pool[0].diceStr}]");
+        print("Epoch: ${epoch}[${run}], Time: ${stopwatch.elapsed}, Score: ${score} (${pool[1].score}, ${pool[2].score}), Letters: ${getString(pool[0].letters)}, Dice: [${pool[0].diceStr}]");
         plateau = 0;
         bestScore = score;
       } else {
         plateau++;
         if (plateau > MAX_PLATEAU_EPOCH) {
-          //  restart because no improvement for long time
-          print("Restarting on epoch ${epoch}");
+          //  restart because no improvement for a long time
+          int newSeed = random.nextInt(1000);
+          random = new Random(newSeed);
+          print("Restarting on epoch ${epoch} with seed ${newSeed}");
           print("".padRight(80, "-"));
           bestScore = 0;
           plateau = 0;
@@ -137,47 +143,57 @@ class Grinder {
         }
       }
 
-      //  generate the new epoch
+      //  generate the new epoch (swapping the pool storages)
       var tmp = prevPool;
       prevPool = pool;
       pool = tmp;
 
       int curGene = 0;
-      //  copy the best gene through
+      //  retain the best gene through
       pool[0].copyFrom(prevPool[0]);
                     
-      //  mutation
+      //  mutate the genes
       for (int i = 0; i < NUM_MUTATE; i++) {
         var g = pool[curGene];
         int p = pickRandomW(random, scores, sumScore);
         g.copyFrom(prevPool[p]);
 
-        int nflips = random.nextInt(MAX_FLIPS) + 1;
-        for (int j = 0; j < nflips; j++) {
-          int k = random.nextInt(NFACES);
-          int mtype = random.nextInt(4);
-          if (mtype == 0) {
-            //  reinit a part of the board
-            int depth = random.nextInt(MAX_MUTATE_DEPTH) + 1;
-            board.letterList = g.letters;
-            board.initRandom(dawg, g.dice, depth, random, k);
-            g.letters = board.faces.map((f) => f.code);
-          } else if (mtype == 1) {
-            //  rotate a random die
-            var d = g.dice[k];
-            g.letters[k] = d.faces[random.nextInt(d.faces.length)];
-          } else if (mtype == 2) {
-            //  swap two random dice
-            int k1 = random.nextInt(NFACES);
-            int k2 = random.nextInt(NFACES);
-            g.swapDice(k1, k2);
-          } else if (mtype == 3) {
-            //  swap a random die with a random neighbor
-            int k = random.nextInt(NFACES);
-            int neighbor = board.faces[k].neighbors[random.nextInt(8)];
+        int depth = random.nextInt(MAX_MUTATE_DEPTH);
+        int mutateCell = random.nextInt(NFACES);
+        int mtype = random.nextInt(4);
+        if (mtype == MUTATE_INIT) {
+          //  reinit a path on the board according to probailities
+          board.letterList = g.letters;
+          board.initRandom(dawg, g.dice, depth, random, mutateCell);
+          g.letters = board.faces.map((f) => f.code);
+        } else if (mtype == MUTATE_FLIP) {
+          //  rotate a random die
+          while (depth > 0) {
+            var d = g.dice[mutateCell];
+            g.letters[mutateCell] = d.faces[random.nextInt(d.faces.length)];
+            int neighbor = board.faces[mutateCell].neighbors[random.nextInt(8)];
             if (neighbor != null) {
-              g.swapDice(k, neighbor);
+              mutateCell = neighbor;
             }
+            depth--;
+          }
+        } else if (mtype == MUTATE_SWAP) {
+          //  swap two random dice
+          while (depth > 0) {
+            int mutateCell1 = random.nextInt(NFACES);
+            g.swapDice(mutateCell, mutateCell1);
+            mutateCell = mutateCell1;
+            depth--;
+          }
+        } else if (mtype == MUTATE_ROLL) {
+          //  swap a chain of random dice with random neighbors
+          while (depth > 0) {
+            int neighbor = board.faces[mutateCell].neighbors[random.nextInt(8)];
+            if (neighbor != null) {
+              g.swapDice(mutateCell, neighbor);
+              mutateCell = neighbor;
+            }
+            depth--;
           }
         }
 

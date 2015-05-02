@@ -4,7 +4,7 @@ import 'boggle.dart';
 import 'grinder.dart';
 
 void main(List<String> arguments)  {  
-  String seed = "moarPointZPLZ!";
+  String seed = "PointsPLZ?!!";
   if (arguments.length > 0) seed = arguments[0];
   print("Grinding with the seed: ${seed}");
 
