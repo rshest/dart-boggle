@@ -188,6 +188,7 @@ class Boggle {
       var s = path.take(depth).map((i)=>faces[i].char).join('');
       if (!found.contains(s)) { 
         int len = depth;
+        
         for (var i = 0; i < depth; i++) {
           if (faces[path[i]].code == Q_CODE) 
             len++;

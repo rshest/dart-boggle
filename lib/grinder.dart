@@ -12,9 +12,9 @@ const int MUTATE_ROLL = 2;
 const int MUTATE_FLIP = 3;
 
 const POOL_SIZE = 100;
-final int NUM_MUTATE = (POOL_SIZE*0.95).floor();
-final int MAX_MUTATE_DEPTH = 5;
-final int MAX_PLATEAU_EPOCH = 1000000~/POOL_SIZE;
+final int NUM_MUTATE = (POOL_SIZE*0.9).floor();
+final int MAX_MUTATE_DEPTH = 3;
+final int MAX_PLATEAU_EPOCH = 10000000~/POOL_SIZE;
 
 class _Gene {
   final List<int> letters;
@@ -117,7 +117,7 @@ class Grinder {
       for (int i = 0; i < POOL_SIZE; i++) {
         int s = pool[i].score;
         // favour better fit genes more
-        int ss = pow(10*s/score, 4).toInt(); 
+        int ss = pow(10*s/score, 5).toInt(); 
         scores[i] = ss;
         sumScore += ss;
       }
