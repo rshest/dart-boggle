@@ -52,7 +52,7 @@ class MainApp extends PolymerElement {
     
   gatherMatchingWords() {
     var mw = boggle.getMatchingWords(dawg);
-    score = boggle.getNonRepeatScore(dawg);   
+    score = boggle.getTotalScore(dawg);   
     var uw = {};
     for (var w in mw) {
       uw.putIfAbsent(w, () => 0);
@@ -61,7 +61,8 @@ class MainApp extends PolymerElement {
     words = [];
     for (var w in uw.keys) {
       int nocc = uw[w];
-      words.add(nocc == 1 ? w : "${w.replaceAll('q', 'qu')}[${nocc}]"); 
+      String qw = w.replaceAll('q', 'qu');
+      words.add(nocc == 1 ? qw : "${qw}[${nocc}]"); 
     }
   }
   

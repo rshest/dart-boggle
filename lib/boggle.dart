@@ -25,11 +25,13 @@ class Boggle {
   int score;
   
   static const OFFX = const [0, 1, 1, 1, 0, -1, -1, -1];
-  static const OFFY = const [-1, -1, 0, 1, 1, 1, 0, -1];   
+  static const OFFY = const [-1, -1, 0, 1, 1, 1, 0, -1];  
   static offsets(int w) =>
     [-w, -w + 1, 1, w + 1, w, w - 1, -1, -w - 1];
   static const DEFAULT_DICE = 'SGECAAREMECGNTDOYSPJNOICD';
   
+  static final Q_CODE = "q".codeUnitAt(0);
+    
   get letterList => faces.map((f) => f.char.toUpperCase());
   get letters => letterList.join('');
   
@@ -170,7 +172,8 @@ class Boggle {
     return res;
   }
   
-  int getTotalScore(Dawg dawg) {
+  //  score with repeating words, counting "qu" as one letter
+  int getRawScore(Dawg dawg) {
     int res = 0;
     traverseBoard(dawg, (path, depth) {
       res += Boggle.rate(depth);
@@ -178,38 +181,21 @@ class Boggle {
     return res;
   }
   
-  int getNonRepeatScore(Dawg dawg) {
+  int getTotalScore(Dawg dawg) {
     int res = 0;
     var found = new Set<String>();
     traverseBoard(dawg, (path, depth) {
       var s = path.take(depth).map((i)=>faces[i].char).join('');
       if (!found.contains(s)) { 
-        res += Boggle.rate(depth);
+        int len = depth;
+        for (var i = 0; i < depth; i++) {
+          if (faces[path[i]].code == Q_CODE) 
+            len++;
+        }
+        res += Boggle.rate(len);
         found.add(s);
       }
     });
-    return res;
-  }
-  
-  List<int> fitDice(List<Die> dice) {
-    if (N != dice.length) return null;
-    var res = new List<int>(N);
-    
-    var mapping = new Map<int, Set<int>>();
-    for (int i = 0; i < dice.length; i++) {
-      var die = dice[i];
-      for (var d in die) {
-        if (!mapping.containsKey(d)) {
-          mapping[d] = new Set<int>();
-        }
-        mapping[d].add(i);
-      }
-    }
-    
-    for (var f in faces) {
-      print("${f.char}:${mapping[f.code]}");
-    }
-    
     return res;
   }
 }

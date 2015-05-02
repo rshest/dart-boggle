@@ -169,9 +169,34 @@ testBoggle() {
     expect(board.letters, equals("CAZT"));  
   });
   
-  test("firtDice", () {
+  test("fitDice", () {
+    /*
+     
+   List<int> fitDice(List<Die> dice) {
+    if (N != dice.length) return null;
+    var res = new List<int>(N);
+    
+    var mapping = new Map<int, Set<int>>();
+    for (int i = 0; i < dice.length; i++) {
+      Die die = dice[i];
+      for (var d in die.faces) {
+        if (!mapping.containsKey(d)) {
+          mapping[d] = new Set<int>();
+        }
+        mapping[d].add(i);
+      }
+    }
+    
+    for (var f in faces) {
+      print("${f.char}:${mapping[f.code]}");
+    }
+    
+    return res;
+  }
+     */
+    
     //var letters = 'oinetntrcsseaiomndlviocer';
-    var letters = 'nelehdarctoitancnseggterh';
+    var letters = 'oclpxniaedstrnseiectrvder';
     var diceStr = '''
 aaafrs
 aaeeee
@@ -201,6 +226,7 @@ ooottu''';
     var dice = Boggle.parseDice(diceStr);
     var boggle = new Boggle(letters, 5, 5);
     var res = boggle.fitDice(dice);
+    var di = [24, 10, 16, 13, 9, 7, 8, 1, 19, 14, 20, 12, 23, 4, 3, 2, 18, 6, 11, 25, 17, 22, 15, 5, 21];
   });
 }
 

@@ -102,7 +102,7 @@ class Grinder {
       // evaluate the genes
       for (var g in pool) {
         board.letterList = g.letters;
-        g.score = board.getNonRepeatScore(dawg);
+        g.score = board.getTotalScore(dawg);
       }
       //  sort by score (best ones first)
       pool.sort((g1, g2) => g2.score - g1.score);
@@ -119,7 +119,7 @@ class Grinder {
       }
 
       if (score > bestScore) {
-        print("Epoch: ${epoch}[${run}], Elapsed: ${stopwatch.elapsed}, Score: ${score} (${pool[1].score}, ${pool[2].score}), Letters: ${getString(pool[0].letters)}, Dice: [${pool[0].diceStr}");
+        print("Epoch: ${epoch}[${run}], Elapsed: ${stopwatch.elapsed}, Score: ${score} (${pool[1].score}, ${pool[2].score}), Letters: ${getString(pool[0].letters)}, Dice: [${pool[0].diceStr}]");
         plateau = 0;
         bestScore = score;
       } else {
