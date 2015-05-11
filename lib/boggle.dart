@@ -1,7 +1,6 @@
 library boggle;
 
 import 'dart:math';
-import 'dart:collection';
 
 //  picks a ranfom element from an array, according to weights
 int pickRandomW(Random random, Iterable<int> arr, int sumScore) {
@@ -19,14 +18,18 @@ int pickRandomW(Random random, Iterable<int> arr, int sumScore) {
 }
 
 class TrieNode {
-  bool terminal = false;
   int pathCount = 0;
+  int rating = 0;
+  bool visited = false;
+  bool terminal = false;
+  
   final Map<int, TrieNode> children = new Map();
 
   child(String s) => children[s.codeUnitAt(0)];
 
   insertWord(String word, [int startChar = 0]) {
     if (startChar == word.length) {
+      rating = Boggle.rateWord(word);
       terminal = true;
       return;
     }
@@ -116,6 +119,14 @@ class Boggle {
 
   //  word rating function
   static int rate(int n) => [0, 1, 2, 3, 5, 11][max(0, min(5, n - 3))];
+  static int rateWord(String word) {
+    int len = word.length;
+    int effectiveLen = len;
+    for (var i = 0; i < len; i++) {
+      if (word.codeUnitAt(i) == Q_CODE) effectiveLen++;
+    }
+    return rate(effectiveLen);
+  }
 
   // parses a dice description from text file
   static List<Die> parseDice(String desc) {
@@ -162,7 +173,7 @@ class Boggle {
       //  the current prefix is in the dictionary
       if (chNode.terminal) {
         //  the prefix is also a full word
-        callback(path, depth + 1);
+        callback(path, depth + 1, chNode);
       }
       //  go down, depth-first
       face.visited = true;
@@ -183,11 +194,11 @@ class Boggle {
   }
 
   //  inits a board randomly, using probabilistic distributions from the trie
-  bool initRandom(Trie trie, List<Die> dice, int num, Random random,
+  int initRandom(Trie trie, List<Die> dice, int num, Random random,
       [int startCell = 0]) {
     if (num == null) num = N;
 
-    initRandomBranch(TrieNode node, int startCell) {
+    int initRandomBranch(TrieNode node, int startCell) {
       var die = dice[startCell];
       int nDieFaces = die.faces.length;
       var prob = new List<int>(nDieFaces);
@@ -203,33 +214,69 @@ class Boggle {
           numValid++;
         }
       }
-      if (numValid == 0) return;
+      if (numValid == 0) return -1;
       int charIdx = pickRandomW(random, prob, null);
       var char = die.faces[charIdx];
       var face = faces[startCell];
       face.code = char;
       face.visited = true;
       num--;
+
+      //  depth-first recur into neighbors
+      for (int neighbor in face.neighbors) {
+        if (neighbor != null && !faces[neighbor].visited) {
+          if (num == 0) return neighbor;
+          var cnode = node.children[char];
+          assert(cnode != null);
+          initRandomBranch(cnode, neighbor);
+        }
+      }
+      return -1;
+    }
+    int res = initRandomBranch(trie.root, startCell);
+    faces.forEach((f) => f.visited = false);
+    return res;
+  }
+  
+  initGreedy(Trie trie, List<Die> dice, int num, Random random,
+      [int startCell = 0]) {
+    if (num == null) num = N;
+
+    initRandomBranch(int startCell) {
+      var face = faces[startCell];
+      var die = dice[startCell];
+      int nDieFaces = die.faces.length;
+      int bestScore = 0;
+      int bestFace = random.nextInt(nDieFaces);
+      for (int i = 0; i < nDieFaces; i++) {
+        face.code = die.faces[i];
+        int score = getTotalScore(trie);
+        if (score > bestScore) {
+          bestScore = score;
+          bestFace = i;
+        }
+      }
+      face.code = die.faces[bestFace];              
+ 
+      num--;
       if (num == 0) return;
 
       //  depth-first recur into neighbors
       for (int neighbor in face.neighbors) {
         if (neighbor != null && !faces[neighbor].visited) {
-          var cnode = node.children[char];
-          assert(cnode != null);
-          initRandomBranch(cnode, neighbor);
+          initRandomBranch(neighbor);
           if (num == 0) return;
         }
       }
     }
-    initRandomBranch(trie.root, startCell);
+    initRandomBranch(startCell);
     faces.forEach((f) => f.visited = false);
   }
 
   //  returns list of all matching words from a trie dictionary
   List<String> getMatchingWords(Trie trie) {
     var res = [];
-    traverseBoard(trie, (path, depth) {
+    traverseBoard(trie, (path, depth, node) {
       var cpath = path.take(depth).toList();
       res.add(cpath.map((i) => faces[i].char).join(''));
     });
@@ -240,7 +287,7 @@ class Boggle {
   List<List<int>> getWordPaths(String word) {
     var trie = new Trie([word]);
     var res = [];
-    traverseBoard(trie, (path, depth) {
+    traverseBoard(trie, (path, depth, node) {
       res.add(path.take(depth).toList());
     });
     return res;
@@ -249,7 +296,7 @@ class Boggle {
   //  score with repeating words, counting "qu" as one letter
   int getRawScore(Trie trie) {
     int res = 0;
-    traverseBoard(trie, (path, depth) {
+    traverseBoard(trie, (path, depth, node) {
       res += Boggle.rate(depth);
     });
     return res;
@@ -258,19 +305,15 @@ class Boggle {
   //  compute score for the board
   int getTotalScore(Trie trie) {
     int res = 0;
-    var found = new Set<String>();
-    traverseBoard(trie, (path, depth) {
-      var s = path.take(depth).map((i) => faces[i].char).join('');
-      if (!found.contains(s)) {
-        int len = depth;
-
-        for (var i = 0; i < depth; i++) {
-          if (faces[path[i]].code == Q_CODE) len++;
-        }
-        res += Boggle.rate(len);
-        found.add(s);
+    var visited = new List<TrieNode>();
+    traverseBoard(trie, (path, depth, node) {
+      if (!node.visited) {
+        visited.add(node);
+        node.visited = true;
+        res += node.rating;
       }
     });
+    for (var n in visited) n.visited = false;
     return res;
   }
 }
