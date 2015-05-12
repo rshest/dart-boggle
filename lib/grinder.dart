@@ -89,8 +89,12 @@ class Grinder {
       seed = newSeed;
       random = new Random(seed);
     }
-    //  run with the best ones pool
     int bestSeed = bestGenes.keys.reduce(max);
+    //  run with the best seed
+    random = new Random(bestSeed);
+    runGrind(random, run, null, MAX_PLATEAU_EPOCH*1000);
+
+    //  run with the best ones pool
     random = new Random(bestSeed);
     runGrind(random, run, bestGenes.values.toList(), MAX_PLATEAU_EPOCH*1000);
   }
