@@ -1,17 +1,20 @@
 library grinder;
 
 import 'dart:math';
+import 'utils.dart';
+import 'trie.dart';
 import 'boggle.dart';
+import 'boggle_init.dart';
 
 const int MUTATE_INIT = 0;
 const int MUTATE_SWAP = 1;
 const int MUTATE_ROLL = 2;
 const int MUTATE_FLIP = 3;
 
-const POOL_SIZE = 100;
-final int NUM_MUTATE = (POOL_SIZE * 0.99).floor();
-final int MAX_MUTATE_DEPTH = 10;
-final int MAX_PLATEAU_EPOCH = 10000000 ~/ POOL_SIZE;
+const POOL_SIZE = 700;
+final int NUM_MUTATE = (POOL_SIZE * 0.95).floor();
+final int MAX_MUTATE_DEPTH = 13;
+final int MAX_PLATEAU_EPOCH = 1000000000 ~/ POOL_SIZE;
 
 class _Gene {
   final List<int> letters;
@@ -72,7 +75,10 @@ class Grinder {
 
     initGene(_Gene g) {
       g.dice.shuffle(random);
-      board.initRandom(trie, g.dice, NFACES, random, random.nextInt(NFACES));
+      for (var f in board.faces) f.code = null;
+      int nextCell = initPrefix(board, trie, g.dice, 4, random, random.nextInt(NFACES));
+      initGreedy(board, trie, g.dice, NFACES - 4, random, nextCell);
+      
       for (int i = 0; i < NFACES; i++) {
         g.letters[i] = board.faces[i].code;
       }
@@ -164,7 +170,7 @@ class Grinder {
         if (mtype == MUTATE_INIT) {
           //  reinit a path on the board according to probailities
           board.letterList = g.letters;
-          board.initRandom(trie, g.dice, depth, random, mutateCell);
+          initPrefix(board, trie, g.dice, depth, random, mutateCell);
           g.setLetters(board.faces.map((f) => f.code));
         } else if (mtype == MUTATE_FLIP) {
           //  rotate a random die

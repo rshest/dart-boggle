@@ -1,5 +1,7 @@
 import 'dart:html';
 import 'package:polymer/polymer.dart';
+
+import 'trie.dart';
 import 'boggle.dart';
 
 const DEFAULT_LETTERS = 'SGECAAREMECGNTDOYSPJNOICD';
@@ -70,7 +72,7 @@ class MainApp extends PolymerElement {
     //  load the dictionary
     HttpRequest.getString('data/words.txt').then((String dict) {
       letters = Uri.base.queryParameters['letters'];
-      trie = new Trie(Trie.parseDictionary(dict));
+      trie = new Trie(Trie.parseDictionary(dict), Boggle.scoreWord);
       gatherMatchingWords();      
       curWord = Uri.base.queryParameters['word'];
     });
