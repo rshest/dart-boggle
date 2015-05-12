@@ -77,28 +77,31 @@ class Grinder {
   grind(int seed) {
     var random = new Random(seed);
     int run = 0;
-    var bestGenes = new Map<int, _Gene>();
-    while (run < POOL_SIZE) {
+    var bestGenes = new Map<_Gene, int>();
+    while (run < 42) {
       print("".padRight(80, "-"));
       print("Starting with seed ${seed}");
-      _Gene gene = runGrind(random, run);
-      bestGenes[gene.score] = seed;
+      _Gene gene = runGrind(random, run)[0];
+      bestGenes[gene] = seed;
       run++;
 
       int newSeed = random.nextInt(1000000);
       seed = newSeed;
       random = new Random(seed);
     }
-    int bestScore = bestGenes.keys.reduce(max);
-    int bestSeed = bestGenes[bestScore];
+    var genes = bestGenes.keys.toList()..sort((a, b) => b.score - a.score);
+    int bestScore = genes[0].score;
+    int bestSeed = bestGenes[genes[0]];
     //  run with the best seed
+    print("Running with the best seed ${bestSeed} (score ${bestScore}):");
     random = new Random(bestSeed);
     runGrind(random, run, null, MAX_PLATEAU_EPOCH*1000);
     run++;
     
-    //  run with the best ones pool
+    //  run with the best of the best pool
+    print("Running with the best of the best pool, seed ${bestSeed}:");
     random = new Random(bestSeed);
-    runGrind(random, run, bestGenes.values.toList(), MAX_PLATEAU_EPOCH*1000);
+    runGrind(random, run, genes, MAX_PLATEAU_EPOCH*1000);
   }
 
   runGrind(Random random,
@@ -240,6 +243,6 @@ class Grinder {
 
       epoch++;
     }
-    return pool[0];
+    return pool;
   }
 }
