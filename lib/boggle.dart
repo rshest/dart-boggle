@@ -13,7 +13,8 @@ class Die {
 class _Face {
   static const NUM_NEIGHBORS = 8;
   final neighbors = new List<int>(NUM_NEIGHBORS); // clockwise, from top
-  int code;
+  int code; // character code
+  int scoreContrib = 0; // this face's total score contribution
   bool visited = false;
 
   get char => new String.fromCharCode(code);
@@ -154,14 +155,21 @@ class Boggle {
   }
 
   //  compute score for the board
-  int getTotalScore(Trie trie) {
+  int getTotalScore(Trie trie, [bool computeScoreContrib = true]) {
     int res = 0;
+    for (var face in faces) face.scoreContrib = 0;
     var visited = new List<TrieNode>();
     traverseBoard(trie, (path, depth, node) {
       if (!node.visited) {
         visited.add(node);
         node.visited = true;
         res += node.score;
+        // update score contributions for corresponding faces
+        if (computeScoreContrib) {
+          for (int i = 0; i < depth; i++) {
+            faces[i].scoreContrib += node.score;
+          }
+        }
       }
     });
     for (var n in visited) n.visited = false;
