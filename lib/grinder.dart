@@ -22,8 +22,8 @@ final int MAX_PLATEAU_EPOCH = 100000 ~/ POOL_SIZE;
 class _Gene {
   final List<int> letters;
   final List<Die> dice;
-
   int score = 0;
+  
   _Gene(n, dice)
       : letters = new List<int>(n),
         dice = new List<Die>(n) {
@@ -81,19 +81,21 @@ class Grinder {
     while (run < POOL_SIZE) {
       print("".padRight(80, "-"));
       print("Starting with seed ${seed}");
-      var gene = runGrind(random, run);
-      bestGenes[seed] = gene;
+      _Gene gene = runGrind(random, run);
+      bestGenes[gene.score] = seed;
       run++;
 
       int newSeed = random.nextInt(1000000);
       seed = newSeed;
       random = new Random(seed);
     }
-    int bestSeed = bestGenes.keys.reduce(max);
+    int bestScore = bestGenes.keys.reduce(max);
+    int bestSeed = bestGenes[bestScore];
     //  run with the best seed
     random = new Random(bestSeed);
     runGrind(random, run, null, MAX_PLATEAU_EPOCH*1000);
-
+    run++;
+    
     //  run with the best ones pool
     random = new Random(bestSeed);
     runGrind(random, run, bestGenes.values.toList(), MAX_PLATEAU_EPOCH*1000);

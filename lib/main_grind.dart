@@ -16,6 +16,13 @@ void main(List<String> arguments)  {
   var dict = Trie.parseDictionary(readFile("./web/data/words.txt"));
   var trie = new Trie(dict, Boggle.scoreWord);
   var grinder = new Grinder(dice, trie);
+  
+  int totalScore = 0;
+  for (var w in dict) {
+    totalScore += Boggle.scoreWord(w);
+  }
+  print("totalScore: ${totalScore}");
+  
   grinder.grind(seed.hashCode);
   
   var mc = new MarkovChain();
