@@ -38,7 +38,7 @@ int initPrefix(Boggle boggle, Trie trie, List<Die> dice, int num, Random random,
     //  depth-first recur into neighbors
     for (int neighbor in face.neighbors) {
       if (neighbor != null && !boggle.faces[neighbor].visited) {
-        if (num == 0) return neighbor;
+        if (num <= 0) return neighbor;
         var cnode = node.children[char];
         assert(cnode != null);
         initRandomBranch(cnode, neighbor);
@@ -46,7 +46,12 @@ int initPrefix(Boggle boggle, Trie trie, List<Die> dice, int num, Random random,
     }
     return -1;
   }
-  int res = initRandomBranch(trie.root, startCell);
+  int res = -1;
+  while (true) {
+    res = initRandomBranch(trie.root, startCell);
+    if (num <= 0) break;
+    startCell = boggle.faces.indexOf(boggle.faces.firstWhere((f) => !f.visited));
+  }
   boggle.faces.forEach((f) => f.visited = false);
   return res;
 }

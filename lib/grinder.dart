@@ -11,10 +11,11 @@ const int MUTATE_SWAP = 1;
 const int MUTATE_ROLL = 2;
 const int MUTATE_FLIP = 3;
 
-const POOL_SIZE = 700;
+const POOL_SIZE = 100;
+final int NUM_RETAIN = 1;
 final int NUM_MUTATE = (POOL_SIZE * 0.95).floor();
 final int MAX_MUTATE_DEPTH = 13;
-final int MAX_PLATEAU_EPOCH = 1000000000 ~/ POOL_SIZE;
+final int MAX_PLATEAU_EPOCH = 100000 ~/ POOL_SIZE;
 
 class _Gene {
   final List<int> letters;
@@ -60,9 +61,10 @@ class Grinder {
 
   List<Die> dice;
   Trie trie;
-  Random random;
+  int MAX_EPOCH;
 
-  Grinder(this.dice, this.trie, [int w = 5, int h = 5])
+  Grinder(this.dice, this.trie,
+      [int w = 5, int h = 5, this.MAX_EPOCH = 1000000])
       : BOARD_W = w,
         BOARD_H = h,
         NFACES = w * h;
@@ -70,21 +72,44 @@ class Grinder {
   static getString(List<int> lst) =>
       lst.map((s) => new String.fromCharCode(s)).join('');
 
-  grind(String seed, [int maxEpoch = 1000000]) {
+  grind(int seed) {
+    var random = new Random(seed);
+    int run = 0;
+    var bestGenes = new Map<int, _Gene>();
+    while (run < POOL_SIZE) {
+      print("".padRight(80, "-"));
+      print("Starting with seed ${seed}");
+      var gene = runGrind(random, run);
+      bestGenes[seed] = gene;
+      run++;
+
+      int newSeed = random.nextInt(1000000);
+      seed = newSeed;
+      random = new Random(seed);
+    }
+    //  run with the best ones pool
+    int bestSeed = bestGenes.keys.reduce(max);
+    random = new Random(bestSeed);
+    runGrind(random, run, bestGenes.values.toList(), MAX_PLATEAU_EPOCH*1000);
+  }
+
+  runGrind(Random random,
+           [int run = 0, List<_Gene> seedPool = null, int maxPlateauEpoch = null]) {
+    if (maxPlateauEpoch == null) maxPlateauEpoch = MAX_PLATEAU_EPOCH;
     Boggle board = new Boggle(null, BOARD_W, BOARD_H);
 
     initGene(_Gene g) {
       g.dice.shuffle(random);
       for (var f in board.faces) f.code = null;
-      int nextCell = initPrefix(board, trie, g.dice, 4, random, random.nextInt(NFACES));
-      initGreedy(board, trie, g.dice, NFACES - 4, random, nextCell);
+      int nextCell = initPrefix(board, trie, g.dice, NFACES, random, random.nextInt(NFACES));
+      //initGreedy(board, trie, g.dice, NFACES - 4, random, nextCell);
       
       for (int i = 0; i < NFACES; i++) {
         g.letters[i] = board.faces[i].code;
       }
     }
 
-    initPool(int size) {
+    createPool(int size) {
       var pool = new List<_Gene>(size);
       for (int i = 0; i < size; i++) {
         pool[i] = new _Gene(NFACES, dice);
@@ -93,21 +118,21 @@ class Grinder {
       return pool;
     }
 
-    random = new Random(seed.hashCode);
-    List<_Gene> pool = initPool(POOL_SIZE);
-    List<_Gene> prevPool = initPool(POOL_SIZE);
+    List<_Gene> pool = createPool(POOL_SIZE);
+    List<_Gene> prevPool = createPool(POOL_SIZE);
     List<int> scores = new List<int>(POOL_SIZE);
 
-    //  initialize the pool
-    pool.forEach((g) => initGene(g));
-    int epoch = 0;
+    if (seedPool != null) {
+      int ngenes = min(seedPool.length, POOL_SIZE);
+      for (int i = 0; i < ngenes; i++) pool[i].copyFrom(seedPool[i]);
+    }
 
     Stopwatch stopwatch = new Stopwatch()..start();
 
+    int epoch = 0;    
     int bestScore = 0;
     int plateau = 0;
-    int run = 0;
-    while (epoch < maxEpoch) {
+    while (epoch < MAX_EPOCH) {
       // evaluate the genes
       for (var g in pool) {
         board.letterList = g.letters;
@@ -128,24 +153,17 @@ class Grinder {
       }
 
       if (score > bestScore) {
-        print(
-            "Epoch: ${epoch}[${run}], Time: ${stopwatch.elapsed}, Score: ${score} (${pool[1].score}, ${pool[2].score}), Letters: ${getString(pool[0].letters)}, Dice: [${pool[0].diceStr}]");
+        print("Epoch: ${epoch}[${run}], Time: ${stopwatch.elapsed}, "
+              "Score: ${score} (${pool[1].score}, ${pool[2].score}), "
+              "Letters: ${getString(pool[0].letters)}, "
+              "Dice: [${pool[0].diceStr}]");
         plateau = 0;
         bestScore = score;
       } else {
         plateau++;
-        if (plateau > MAX_PLATEAU_EPOCH) {
-          //  restart because no improvement for a long time
-          int newSeed = random.nextInt(1000);
-          random = new Random(newSeed);
-          print("Restarting on epoch ${epoch} with seed ${newSeed}");
-          print("".padRight(80, "-"));
-          bestScore = 0;
-          plateau = 0;
-          epoch = 0;
-          run++;
-          pool = initPool(POOL_SIZE);
-          continue;
+        if (plateau > maxPlateauEpoch) {
+          //  no improvement for long time, bail out
+          break;
         }
       }
 
@@ -155,8 +173,9 @@ class Grinder {
       pool = tmp;
 
       int curGene = 0;
-      //  retain the best gene through
-      pool[0].copyFrom(prevPool[0]);
+      //  retain the best gene(s) through
+      for (; curGene < NUM_RETAIN; curGene++)
+        pool[curGene].copyFrom(prevPool[curGene]);
 
       //  mutate the genes
       for (int i = 0; i < NUM_MUTATE; i++) {
@@ -213,6 +232,6 @@ class Grinder {
 
       epoch++;
     }
-    return new Boggle(getString(pool[0].letters), BOARD_W, BOARD_H);
+    return pool[0];
   }
 }

@@ -209,18 +209,16 @@ nootuw
 ooottu''';
     var dice = Boggle.parseDice(diceStr);
     var boggle = new Boggle(letters, 5, 5);
-    var res = boggle.fitDice(dice);
     var di = [24, 10, 16, 13, 9, 7, 8, 1, 19, 14, 20, 12, 23, 4, 3, 2, 18, 6, 11, 25, 17, 22, 15, 5, 21];
   });
 }
 
 testGrinder() {
-  String seed = 'AAAA';
   String dict = "catz";
-  var trie = new Trie(Trie.parseDictionary(dict));
+  var trie = new Trie(Trie.parseDictionary(dict), Boggle.scoreWord);
   var dice = Boggle.parseDice("cccccc\naaaaaa\ntttttt\nzzzzzz");
-  var grinder = new Grinder(dice, trie, 2, 2);
-  Boggle board = grinder.grind(seed, 1);
+  var grinder = new Grinder(dice, trie, 2, 2, 1);
+  Boggle board = grinder.grind(1);
   test("SmallGrind", () {
     expect(board.getTotalScore(trie), equals(1));
   });
