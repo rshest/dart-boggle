@@ -10,6 +10,8 @@ const int MUTATE_INIT = 0;
 const int MUTATE_SWAP = 1;
 const int MUTATE_ROLL = 2;
 const int MUTATE_FLIP = 3;
+const MUTATE_FREQ = const [15, 5, 10, 5];
+final MUTATE_FREQ_SUM = MUTATE_FREQ.reduce((a, b) => a + b);
 
 const POOL_SIZE = 100;
 final int NUM_RETAIN = 1;
@@ -185,7 +187,7 @@ class Grinder {
 
         int depth = random.nextInt(MAX_MUTATE_DEPTH);
         int mutateCell = random.nextInt(NFACES);
-        int mtype = random.nextInt(4);
+        int mtype = pickRandomW(random, MUTATE_FREQ, MUTATE_FREQ_SUM);
         if (mtype == MUTATE_INIT) {
           //  reinit a path on the board according to probailities
           board.letterList = g.letters;
