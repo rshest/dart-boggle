@@ -26,6 +26,7 @@ class Boggle {
   final List<_Face> faces;
   int score;
 
+  static const SCORE_LOOKUP = const [0, 0, 0, 0, 1, 2, 3, 5, 11];
   static const OFFX = const [0, 1, 1, 1, 0, -1, -1, -1];
   static const OFFY = const [-1, -1, 0, 1, 1, 1, 0, -1];
   static offsets(int w) => [-w, -w + 1, 1, w + 1, w, w - 1, -1, -w - 1];
@@ -46,7 +47,7 @@ class Boggle {
   }
 
   //  word scoring function
-  static int scoreLen(int n) => [0, 1, 2, 3, 5, 11][max(0, min(5, n - 3))];
+  static int scoreLen(int n) => SCORE_LOOKUP[min(8, n)];
   static int scoreWord(String word) {
     int len = word.length;
     int effectiveLen = len;
