@@ -26,12 +26,11 @@ testUtil() {
       cnt[idx]++;
     }
     int csum = cnt.reduce((a, b) => a + b);
-    var normCnt = cnt.map((c)=>sum*c/csum).toList();
+    var normCnt = cnt.map((c) => sum * c / csum).toList();
     for (int i = 0; i < cnt.length; i++) {
       expect(normCnt[i], closeTo(probs[i], 0.1));
     }
   });
-
 }
 
 testTrie() {
@@ -40,12 +39,12 @@ testTrie() {
     var c = trie.root.child('c');
     var a = c.child('a');
     var t = a.child('t');
-    
+
     expect(trie.root.children.length, equals(1));
-    
+
     expect(c.children.length, equals(1));
     expect(c.terminal, isFalse);
-    
+
     expect(a.children.length, equals(1));
     expect(a.terminal, isFalse);
 
@@ -55,7 +54,7 @@ testTrie() {
 
   test("Two different words, contains", () {
     var trie = new Trie(['one', 'two']);
-    
+
     expect(trie.root.children.length, equals(2));
     expect(trie.contains('one'), isTrue);
     expect(trie.contains('two'), isTrue);
@@ -65,7 +64,6 @@ testTrie() {
     expect(trie.contains('four'), isFalse);
   });
 
-  
   test("Common prefix", () {
     var trie = new Trie(['can', 'car', 'carat', 'cart', 'cat']);
     expect(trie.contains('can'), isTrue);
@@ -83,15 +81,17 @@ testTrie() {
     var a = c.child('a');
     expect(a.children.length, equals(3));
   });
-  
 }
 
 testGetMatchingWords(die, w, h, match, notmatch) {
-  var dict = []..addAll(match)..addAll(notmatch)..sort();
+  var dict = []
+    ..addAll(match)
+    ..addAll(notmatch)
+    ..sort();
   var trie = new Trie(dict);
-  
+
   var boggle = new Boggle(die, w, h);
-  
+
   test("${w}x${h}[${dict.length}] - getMatchingWords", () {
     var mw = boggle.getMatchingWords(trie);
     expect(mw, unorderedEquals(match));
@@ -101,86 +101,62 @@ testGetMatchingWords(die, w, h, match, notmatch) {
 testBoggle() {
   test("3x2 - Neighbors", () {
     var boggle = new Boggle('AAAAAA', 3, 2);
-    
-    expect(boggle.faces[0].neighbors, 
+
+    expect(boggle.faces[0].neighbors,
         orderedEquals([null, null, 1, 4, 3, null, null, null]));
-    expect(boggle.faces[4].neighbors, 
-            orderedEquals([1, 2, 5, null, null, null, 3, 0]));
-    expect(boggle.faces[2].neighbors, 
-            orderedEquals([null, null, null, null, 5, 4, 1, null]));    
-    expect(boggle.faces.length, equals(6));      
+    expect(boggle.faces[4].neighbors,
+        orderedEquals([1, 2, 5, null, null, null, 3, 0]));
+    expect(boggle.faces[2].neighbors,
+        orderedEquals([null, null, null, null, 5, 4, 1, null]));
+    expect(boggle.faces.length, equals(6));
   });
   testGetMatchingWords('a', 1, 1, ['a'], []);
   testGetMatchingWords('at', 1, 2, ['at'], []);
   testGetMatchingWords('cat', 1, 3, ['cat'], []);
-  testGetMatchingWords('cat', 3, 1, ['cat'], ['rat', 'act', 'caca']);  
-  testGetMatchingWords('car' + 
-                       'nta',
-                       3, 2,
-                       ['can', 'car', 'carat', 'cart', 'cat', 
-                        'ant', 'rant'],
-                       ['pony', 'cars', 'nan', 'nrc', 'dart', 'caca']);
+  testGetMatchingWords('cat', 3, 1, ['cat'], ['rat', 'act', 'caca']);
+  testGetMatchingWords('car' + 'nta', 3, 2, [
+    'can',
+    'car',
+    'carat',
+    'cart',
+    'cat',
+    'ant',
+    'rant'
+  ], ['pony', 'cars', 'nan', 'nrc', 'dart', 'caca']);
 
   test("Word path - single", () {
     var boggle = new Boggle('carnta', 3, 2);
     var paths = boggle.getWordPaths('carat');
-    expect(paths.length, equals(1));        
-    expect(paths[0], orderedEquals([0, 1, 2, 5, 4]));    
+    expect(paths.length, equals(1));
+    expect(paths[0], orderedEquals([0, 1, 2, 5, 4]));
   });
 
   test("Word path - multiple", () {
     var boggle = new Boggle('carnta', 3, 2);
     var paths = boggle.getWordPaths('carat');
-    expect(paths.length, equals(1));        
-    expect(paths[0], orderedEquals([0, 1, 2, 5, 4]));    
+    expect(paths.length, equals(1));
+    expect(paths[0], orderedEquals([0, 1, 2, 5, 4]));
   });
 
   test("Score", () {
     var boggle = new Boggle('carnta', 3, 2);
     var words = ['can', 'car', 'carat', 'caratn', 'cart', 'dart'];
     var trie = new Trie(words, Boggle.scoreWord);
-    int score = boggle.getTotalScore(trie);    
-    expect(score, equals(6));    
+    int score = boggle.getTotalScore(trie);
+    expect(score, equals(6));
   });
-  
+
   test("Init prefix", () {
     String dict = "catz";
     var trie = new Trie(Trie.parseDictionary(dict));
     var dice = Boggle.parseDice("cccccc\naaaaaa\nzzzzzz\ntttttt");
     Boggle board = new Boggle(null, 2, 2);
     Random random = new Random();
-    initPrefix(board, trie, dice, 4, random);    
-    expect(board.letters, equals("CAZT"));  
+    initPrefix(board, trie, dice, 4, random);
+    expect(board.letters, equals("CAZT"));
   });
-  
+
   test("fitDice", () {
-    /*
-     
-   List<int> fitDice(List<Die> dice) {
-    if (N != dice.length) return null;
-    var res = new List<int>(N);
-    
-    var mapping = new Map<int, Set<int>>();
-    for (int i = 0; i < dice.length; i++) {
-      Die die = dice[i];
-      for (var d in die.faces) {
-        if (!mapping.containsKey(d)) {
-          mapping[d] = new Set<int>();
-        }
-        mapping[d].add(i);
-      }
-    }
-    
-    for (var f in faces) {
-      print("${f.char}:${mapping[f.code]}");
-    }
-    
-    return res;
-  }
-     */
-    
-    //var letters = 'oinetntrcsseaiomndlviocer';
-    var letters = 'oclpxniaedstrnseiectrvder';
     var diceStr = '''
 aaafrs
 aaeeee
@@ -208,12 +184,94 @@ iprrry
 nootuw
 ooottu''';
     var dice = Boggle.parseDice(diceStr);
-    var boggle = new Boggle(letters, 5, 5);
-    var di = [24, 10, 16, 13, 9, 7, 8, 1, 19, 14, 20, 12, 23, 4, 3, 2, 18, 6, 11, 25, 17, 22, 15, 5, 21];
+
+    List<int> fitDice(String letters, List<Die> dice) {
+      final int n = letters.length;
+      final int ndice = dice.length;
+      var res = new List<int>(n);
+
+      //  set of possible dice for every letter
+      var diceUsed = new List<bool>(ndice);
+      var mapping = new Map<int, Set<int>>();
+      for (int i = 0; i < ndice; i++) {
+        diceUsed[i] = false;
+        Die die = dice[i];
+        for (var d in die.faces) {
+          if (!mapping.containsKey(d)) {
+            mapping[d] = new Set<int>();
+          }
+          mapping[d].add(i);
+        }
+      }
+
+      var allowedDice = new List<List<int>>(n);
+      var competesFor = new Map<int, int>();
+      var codes = new List<int>(n);
+      for (int i = 0; i < n; i++) {
+        int code = letters.codeUnitAt(i);
+        allowedDice[i] = mapping[code].toList();
+        codes[i] = code;
+        print("${new String.fromCharCode(code)}:${mapping[code]}");
+      }
+
+      while (true) {
+        //  find the first non-allocated letter (with min allowed)
+        int idx = -1;
+        int minAllowed = dice.length;
+        for (int i = 0; i < n; i++) {
+          if (res[i] == null && allowedDice[i].length < minAllowed) {
+            minAllowed = allowedDice[i].length;
+            idx = i;
+          }
+        }
+        if (idx == -1) break;
+
+        bool pickBranch(idx) {
+          diceUsed[idx] = true;
+          //  deepen down trying to pick branches
+          //  for the letters, competing for this die
+
+          return true;
+        }
+
+        bool found = pickBranch(idx);
+        if (!found) {
+          return null;
+        }
+        break;
+      }
+
+      return res;
+    }
+
+    var words = [
+      "actively",
+      "fucking",
+      "governor",
+      "bubble",
+      "puzzle",
+      "eyebrow",
+      "laser",
+      "judgment",
+      "sidewalk",
+      "mortgage",
+      "miracle",
+      "explode",
+      "oclpxniaedstrnseiectrvder"
+      ];
+    var res = words.map((w)=>fitDice(w, dice)).toList();
+    var exp = [
+      [24, 10, 16, 13, 9, 7, 8, 1, 19, 14, 20, 12, 23, 4, 3, 2, 18, 6, 11, 25, 17, 22, 15, 5, 21],
+      null,
+      null,
+      []
+      ];
+    expect(res, orderedEquals(exp));
   });
 }
 
 testGrinder() {
+  /*
   String dict = "catz";
   var trie = new Trie(Trie.parseDictionary(dict), Boggle.scoreWord);
   var dice = Boggle.parseDice("cccccc\naaaaaa\ntttttt\nzzzzzz");
@@ -222,15 +280,16 @@ testGrinder() {
   test("SmallGrind", () {
     expect(board.getTotalScore(trie), equals(1));
   });
+   */
 }
 
 void main() {
   useHtmlEnhancedConfiguration();
- 
+
   group('Util', () {
     testUtil();
   });
-  
+
   group('Trie', () {
     testTrie();
   });
@@ -238,7 +297,7 @@ void main() {
   group('Boggle', () {
     testBoggle();
   });
-  
+
   group('Grinder', () {
     testGrinder();
   });

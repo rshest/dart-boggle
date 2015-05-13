@@ -54,11 +54,11 @@ class Trie {
     }
   }
 
-  static List<String> parseDictionary(String dict) {
+  static List<String> parseDictionary(String dict, [bool skipImpossible = true]) {
     var re = new RegExp("q(?!u)|-|'|/");
     return dict
         .split(' ')
-        .where((s) => !re.hasMatch(s))
+        .where((s) => !skipImpossible || !re.hasMatch(s))
         .map((s) => s.trim().toLowerCase().replaceAll('qu', 'q'))
         .toList()..sort();
   }
