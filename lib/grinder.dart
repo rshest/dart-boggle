@@ -10,20 +10,20 @@ const int MUTATE_INIT = 0;
 const int MUTATE_SWAP = 1;
 const int MUTATE_ROLL = 2;
 const int MUTATE_FLIP = 3;
-const MUTATE_FREQ = const [15, 5, 10, 5];
+const MUTATE_FREQ = const [5, 25, 15, 20];
 final MUTATE_FREQ_SUM = MUTATE_FREQ.reduce((a, b) => a + b);
 
-const POOL_SIZE = 100;
+const POOL_SIZE = 700;
 final int NUM_RETAIN = 1;
-final int NUM_MUTATE = (POOL_SIZE * 0.95).floor();
-final int MAX_MUTATE_DEPTH = 13;
-final int MAX_PLATEAU_EPOCH = 100000 ~/ POOL_SIZE;
+final int NUM_MUTATE = (POOL_SIZE * 0.90).floor();
+final int MAX_MUTATE_DEPTH = 32;
+final int MAX_PLATEAU_EPOCH = 1000000 ~/ POOL_SIZE;
 
 class _Gene {
   final List<int> letters;
   final List<Die> dice;
   int score = 0;
-  
+
   _Gene(n, dice)
       : letters = new List<int>(n),
         dice = new List<Die>(n) {
@@ -97,7 +97,7 @@ class Grinder {
     random = new Random(bestSeed);
     runGrind(random, run, null, MAX_PLATEAU_EPOCH*1000);
     run++;
-    
+
     //  run with the best of the best pool
     print("Running with the best of the best pool, seed ${bestSeed}:");
     random = new Random(bestSeed);
@@ -114,7 +114,7 @@ class Grinder {
       for (var f in board.faces) f.code = null;
       int nextCell = initPrefix(board, trie, g.dice, NFACES, random, random.nextInt(NFACES));
       //initGreedy(board, trie, g.dice, NFACES - 4, random, nextCell);
-      
+
       for (int i = 0; i < NFACES; i++) {
         g.letters[i] = board.faces[i].code;
       }
@@ -140,14 +140,14 @@ class Grinder {
 
     Stopwatch stopwatch = new Stopwatch()..start();
 
-    int epoch = 0;    
+    int epoch = 0;
     int bestScore = 0;
     int plateau = 0;
     while (epoch < MAX_EPOCH) {
       // evaluate the genes
       for (var g in pool) {
         board.letterList = g.letters;
-        g.score = board.getTotalScore(trie);
+        g.score = board.getTotalScore(trie, false);
       }
       //  sort by score (best ones first)
       pool.sort((g1, g2) => g2.score - g1.score);
@@ -158,7 +158,7 @@ class Grinder {
       for (int i = 0; i < POOL_SIZE; i++) {
         int s = pool[i].score;
         // favour better fit genes more
-        int ss = pow(10 * s / score, 5).toInt();
+        int ss = pow(10 * s / score, 4).toInt();
         scores[i] = ss;
         sumScore += ss;
       }
@@ -195,44 +195,80 @@ class Grinder {
         g.copyFrom(prevPool[p]);
 
         int depth = random.nextInt(MAX_MUTATE_DEPTH);
-        int mutateCell = random.nextInt(NFACES);
-        int mtype = pickRandomW(random, MUTATE_FREQ, MUTATE_FREQ_SUM);
-        if (mtype == MUTATE_INIT) {
-          //  reinit a path on the board according to probailities
+        for (int k = 0; k < depth; k++) {
           board.letterList = g.letters;
-          initPrefix(board, trie, g.dice, depth, random, mutateCell);
-          g.setLetters(board.faces.map((f) => f.code));
-        } else if (mtype == MUTATE_FLIP) {
-          //  rotate a random die
-          while (depth > 0) {
-            var d = g.dice[mutateCell];
-            g.letters[mutateCell] = d.faces[random.nextInt(d.faces.length)];
-            int neighbor = board.faces[mutateCell].neighbors[random.nextInt(8)];
-            if (neighbor != null) {
-              mutateCell = neighbor;
+          g.score = board.getTotalScore(trie, true);
+          /*
+          int mutateCell = 0;
+          int worstScoreContrib = board.faces[0].scoreContrib;
+          for (int i = 1; i < NFACES; i++) {
+            int sc = board.faces[i].scoreContrib;
+            if (sc < worstScoreContrib) {
+              worstScoreContrib = sc;
+              mutateCell = i;
             }
-            depth--;
           }
-        } else if (mtype == MUTATE_SWAP) {
-          //  swap two random dice
-          while (depth > 0) {
-            int mutateCell1 = random.nextInt(NFACES);
-            g.swapDice(mutateCell, mutateCell1);
-            mutateCell = mutateCell1;
-            depth--;
-          }
-        } else if (mtype == MUTATE_ROLL) {
-          //  swap a chain of random dice with random neighbors
-          while (depth > 0) {
-            int neighbor = board.faces[mutateCell].neighbors[random.nextInt(8)];
-            if (neighbor != null) {
-              g.swapDice(mutateCell, neighbor);
-              mutateCell = neighbor;
+           */
+          int mutateCell = random.nextInt(NFACES);//pickRandomW(random, board.faces.map((f) => pow(1000 - f.scoreContrib, 2)));
+          int mtype = pickRandomW(random, MUTATE_FREQ, MUTATE_FREQ_SUM);
+          if (mtype == MUTATE_INIT) {
+            initPrefix(board, trie, g.dice, 8, random, mutateCell);
+            g.setLetters(board.faces.map((f) => f.code));
+          } else if (mtype == MUTATE_FLIP) {
+            //  rotate a random die
+            Die d = g.dice[mutateCell];
+            int bestScore = 0;
+            int bestFace = -1;
+            for (var f in d.faces) {
+              board.faces[mutateCell].code = f;
+              int score = board.getTotalScore(trie, false);
+              if (score > bestScore) {
+                bestScore = score;
+                bestFace = f;
+              }
             }
-            depth--;
+            //if (g.score <= bestScore)
+              g.letters[mutateCell] = bestFace;
+          } else if (mtype == MUTATE_SWAP) {
+            //  swap two random dice
+            int bestScore = 0;
+            int bestCell = -1;
+            int curCode = board.faces[mutateCell].code;
+            for (int i = 0; i < NFACES; i++) {
+              if (i == mutateCell) continue;
+              int f = board.faces[i].code;
+              board.faces[i].code = curCode;
+              board.faces[mutateCell].code = f;
+              int score = board.getTotalScore(trie, false);
+              if (score > bestScore) {
+                bestScore = score;
+                bestCell = i;
+              }
+              board.faces[i].code = f;
+            }
+            //if (g.score <= bestScore)
+              g.swapDice(mutateCell, bestCell);
+          } else if (mtype == MUTATE_ROLL) {
+            //  swap two neighbors
+            int bestScore = 0;
+            int bestCell = -1;
+            int curCode = board.faces[mutateCell].code;
+            for (var neighbor in board.faces[mutateCell].neighbors) {
+              if (neighbor == null) continue;
+              int f = board.faces[neighbor].code;
+              board.faces[neighbor].code = curCode;
+              board.faces[mutateCell].code = f;
+              int score = board.getTotalScore(trie, false);
+              if (score > bestScore) {
+                bestScore = score;
+                bestCell = neighbor;
+              }
+              board.faces[neighbor].code = f;
+            }
+            //if (g.score <= bestScore)
+              g.swapDice(mutateCell, bestCell);
           }
         }
-
         curGene++;
       }
       //  just randomly init the rest

@@ -25,7 +25,7 @@ void main(List<String> arguments)  {
   var fullDict = Trie.parseDictionary(readFile("./web/data/words.txt"), false);
   print("totalScore: ${totalScore}, words: ${dict.length}, fullWords:${fullDict.length}");
 
-  //grinder.grind(seed.hashCode);
+  grinder.grind(seed.hashCode);
 
   var mc = new MarkovChain();
   for (var word in dict) {
