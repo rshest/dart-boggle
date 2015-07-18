@@ -1,46 +1,18 @@
 import 'dart:math';
 import 'package:unittest/unittest.dart';
 import 'package:unittest/html_enhanced_config.dart';
-import 'package:dart_boggle/utils.dart';
 import 'package:dart_boggle/trie.dart';
 import 'package:dart_boggle/boggle.dart';
-import 'package:dart_boggle/boggle_init.dart';
-import 'package:dart_boggle/grinder.dart';
-
-testUtil() {
-  test("Pick random weighted - basic", () {
-    var rnd = new Random(123);
-    expect(pickRandomW(rnd, [1000000, 1, 1, 1, 1, 1], null), equals(0));
-    expect(pickRandomW(rnd, [1, 1, 1, 1, 1000000, 1], null), equals(4));
-    expect(pickRandomW(rnd, [0, 0, 0, 0, 0, 1], null), equals(5));
-    expect(pickRandomW(rnd, [0, 1, 0, 0, 0, 0], null), equals(1));
-  });
-
-  test("Pick random weighted - probabilistic", () {
-    Random rnd = new Random(1234);
-    var probs = [9, 13, 5, 7, 4, 1, 1, 14, 3, 2];
-    int sum = probs.reduce((a, b) => a + b);
-    var cnt = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    for (int i = 0; i < 1000000; i++) {
-      int idx = pickRandomW(rnd, probs);
-      cnt[idx]++;
-    }
-    int csum = cnt.reduce((a, b) => a + b);
-    var normCnt = cnt.map((c) => sum * c / csum).toList();
-    for (int i = 0; i < cnt.length; i++) {
-      expect(normCnt[i], closeTo(probs[i], 0.1));
-    }
-  });
-}
 
 testTrie() {
   test("Single word", () {
-    var trie = new Trie(['cat', 'cat']);
-    var c = trie.root.child('c');
+    var trie = new TrieNode();
+    trie.buildTrie(['cat', 'cat']);
+    var c = trie.child('c');
     var a = c.child('a');
     var t = a.child('t');
 
-    expect(trie.root.children.length, equals(1));
+    expect(trie.children.length, equals(1));
 
     expect(c.children.length, equals(1));
     expect(c.terminal, isFalse);
@@ -53,9 +25,9 @@ testTrie() {
   });
 
   test("Two different words, contains", () {
-    var trie = new Trie(['one', 'two']);
-
-    expect(trie.root.children.length, equals(2));
+    var trie = new TrieNode();
+    trie.buildTrie(['one', 'two']);
+    expect(trie.children.length, equals(2));
     expect(trie.contains('one'), isTrue);
     expect(trie.contains('two'), isTrue);
     expect(trie.contains('ones'), isFalse);
@@ -65,7 +37,8 @@ testTrie() {
   });
 
   test("Common prefix", () {
-    var trie = new Trie(['can', 'car', 'carat', 'cart', 'cat']);
+    var trie = new TrieNode();
+    trie.buildTrie(['can', 'car', 'carat', 'cart', 'cat']);
     expect(trie.contains('can'), isTrue);
     expect(trie.contains('car'), isTrue);
     expect(trie.contains('cat'), isTrue);
@@ -73,9 +46,9 @@ testTrie() {
     expect(trie.contains('cart'), isTrue);
     expect(trie.contains('cara'), isFalse);
 
-    expect(trie.root.children.length, equals(1));
+    expect(trie.children.length, equals(1));
 
-    var c = trie.root.child('c');
+    var c = trie.child('c');
     expect(c.children.length, equals(1));
 
     var a = c.child('a');
@@ -88,9 +61,10 @@ testGetMatchingWords(die, w, h, match, notmatch) {
     ..addAll(match)
     ..addAll(notmatch)
     ..sort();
-  var trie = new Trie(dict);
+  var trie = new TrieNode();
+  trie.buildTrie(dict);
 
-  var boggle = new Boggle(die, w, h);
+  var boggle = new Boggle(w, h, die);
 
   test("${w}x${h}[${dict.length}] - getMatchingWords", () {
     var mw = boggle.getMatchingWords(trie);
@@ -100,7 +74,7 @@ testGetMatchingWords(die, w, h, match, notmatch) {
 
 testBoggle() {
   test("3x2 - Neighbors", () {
-    var boggle = new Boggle('AAAAAA', 3, 2);
+    var boggle = new Boggle(3, 2, 'AAAAAA');
 
     expect(boggle.faces[0].neighbors,
         orderedEquals([null, null, 1, 4, 3, null, null, null]));
@@ -110,6 +84,7 @@ testBoggle() {
         orderedEquals([null, null, null, null, 5, 4, 1, null]));
     expect(boggle.faces.length, equals(6));
   });
+  
   testGetMatchingWords('a', 1, 1, ['a'], []);
   testGetMatchingWords('at', 1, 2, ['at'], []);
   testGetMatchingWords('cat', 1, 3, ['cat'], []);
@@ -122,173 +97,34 @@ testBoggle() {
     'cat',
     'ant',
     'rant'
-  ], ['pony', 'cars', 'nan', 'nrc', 'dart', 'caca']);
+  ], ['pony', 'cars', 'nan', 'narc', 'dart', 'caca']);
 
   test("Word path - single", () {
-    var boggle = new Boggle('carnta', 3, 2);
+    var boggle = new Boggle(3, 2, 'carnta');
     var paths = boggle.getWordPaths('carat');
     expect(paths.length, equals(1));
     expect(paths[0], orderedEquals([0, 1, 2, 5, 4]));
   });
 
   test("Word path - multiple", () {
-    var boggle = new Boggle('carnta', 3, 2);
+    var boggle = new Boggle(3, 2, 'carnta');
     var paths = boggle.getWordPaths('carat');
     expect(paths.length, equals(1));
     expect(paths[0], orderedEquals([0, 1, 2, 5, 4]));
   });
 
   test("Score", () {
-    var boggle = new Boggle('carnta', 3, 2);
+    var boggle = new Boggle(3, 2, 'carnta');
     var words = ['can', 'car', 'carat', 'caratn', 'cart', 'dart'];
-    var trie = new Trie(words, Boggle.scoreWord);
+    var trie = new TrieNode();
+    trie.buildTrie(words);
     int score = boggle.getTotalScore(trie);
     expect(score, equals(6));
   });
-
-  test("Init prefix", () {
-    String dict = "catz";
-    var trie = new Trie(Trie.parseDictionary(dict));
-    var dice = Boggle.parseDice("cccccc\naaaaaa\nzzzzzz\ntttttt");
-    Boggle board = new Boggle(null, 2, 2);
-    Random random = new Random();
-    initPrefix(board, trie, dice, 4, random);
-    expect(board.letters, equals("CAZT"));
-  });
-
-  test("fitDice", () {
-    var diceStr = '''
-aaafrs
-aaeeee
-aafirs
-adennn
-aeeeem
-aeegmu
-aegmnn
-afirsy
-bjkqxz
-ccenst
-ceiilt
-ceilpt
-ceipst
-ddhnot
-dhhlor
-dhlnor
-dhlnor
-eiiitt
-emottt
-ensssu
-fiprsy
-gorrvw
-iprrry
-nootuw
-ooottu''';
-    var dice = Boggle.parseDice(diceStr);
-
-    List<int> fitDice(String letters, List<Die> dice) {
-      final int n = letters.length;
-      final int ndice = dice.length;
-      var res = new List<int>(n);
-
-      //  set of possible dice for every letter
-      var diceUsed = new List<bool>(ndice);
-      var mapping = new Map<int, Set<int>>();
-      for (int i = 0; i < ndice; i++) {
-        diceUsed[i] = false;
-        Die die = dice[i];
-        for (var d in die.faces) {
-          if (!mapping.containsKey(d)) {
-            mapping[d] = new Set<int>();
-          }
-          mapping[d].add(i);
-        }
-      }
-
-      var allowedDice = new List<List<int>>(n);
-      var competesFor = new Map<int, int>();
-      var codes = new List<int>(n);
-      for (int i = 0; i < n; i++) {
-        int code = letters.codeUnitAt(i);
-        allowedDice[i] = mapping[code].toList();
-        codes[i] = code;
-        print("${new String.fromCharCode(code)}:${mapping[code]}");
-      }
-
-      while (true) {
-        //  find the first non-allocated letter (with min allowed)
-        int idx = -1;
-        int minAllowed = dice.length;
-        for (int i = 0; i < n; i++) {
-          if (res[i] == null && allowedDice[i].length < minAllowed) {
-            minAllowed = allowedDice[i].length;
-            idx = i;
-          }
-        }
-        if (idx == -1) break;
-
-        bool pickBranch(idx) {
-          diceUsed[idx] = true;
-          //  deepen down trying to pick branches
-          //  for the letters, competing for this die
-
-          return true;
-        }
-
-        bool found = pickBranch(idx);
-        if (!found) {
-          return null;
-        }
-        break;
-      }
-
-      return res;
-    }
-
-    var words = [
-      "actively",
-      "fucking",
-      "governor",
-      "bubble",
-      "puzzle",
-      "eyebrow",
-      "laser",
-      "judgment",
-      "sidewalk",
-      "mortgage",
-      "miracle",
-      "explode",
-      "oclpxniaedstrnseiectrvder"
-      ];
-    var res = words.map((w)=>fitDice(w, dice)).toList();
-    var exp = [
-      [24, 10, 16, 13, 9, 7, 8, 1, 19, 14, 20, 12, 23, 4, 3, 2, 18, 6, 11, 25, 17, 22, 15, 5, 21],
-      null,
-      null,
-      []
-      ];
-    expect(res, orderedEquals(exp));
-  });
-}
-
-testGrinder() {
-  /*
-  String dict = "catz";
-  var trie = new Trie(Trie.parseDictionary(dict), Boggle.scoreWord);
-  var dice = Boggle.parseDice("cccccc\naaaaaa\ntttttt\nzzzzzz");
-  var grinder = new Grinder(dice, trie, 2, 2, 1);
-  Boggle board = grinder.grind(1);
-  test("SmallGrind", () {
-    expect(board.getTotalScore(trie), equals(1));
-  });
-   */
 }
 
 void main() {
   useHtmlEnhancedConfiguration();
-
-  group('Util', () {
-    testUtil();
-  });
 
   group('Trie', () {
     testTrie();
@@ -296,9 +132,5 @@ void main() {
 
   group('Boggle', () {
     testBoggle();
-  });
-
-  group('Grinder', () {
-    testGrinder();
   });
 }

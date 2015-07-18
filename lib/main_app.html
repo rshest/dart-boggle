@@ -11,11 +11,11 @@
     .wordlist { margin:8px; }
     .word { cursor:pointer; }
     .word:hover { background-color:#ffec9f; }
-    .board { margin:4px; border:1px solid gray; background:#eeeeee; min-width: 160px; }
+    .board { margin:4px; border:1px solid gray; background:#eeeeee; }
     </style>
     <div horizontal layout>
       <template repeat="{{board in boards}}">
-        <div class="board" horizontal layout wrap style="width:160px">
+        <div class="board" horizontal layout wrap style="width:{{32*boggle.width}}px">
           <template repeat="{{face in board}}">
             <div class="dieface">
               <img class="diebg" _src="/images/die{{face.direction}}.png">

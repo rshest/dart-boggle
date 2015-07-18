@@ -5,10 +5,13 @@ import 'trie.dart';
 import 'boggle.dart';
 
 const DEFAULT_LETTERS = 'SGECAAREMECGNTDOYSPJNOICD';
+const DEFAULT_BOARD_W = 5;
+const DEFAULT_BOARD_H = 5;
+const DEFAULT_DICTIONARY = 'data/words.txt';
 const END_PATH = 9;
 
-class Face  extends Object with Observable {
-  String letter;
+class Face extends Object with Observable {
+  final String letter;
   @observable int direction;  
   Face(this.letter, [this.direction=0]);
 }
@@ -19,17 +22,11 @@ class MainApp extends PolymerElement {
   @observable List<List<Face>> boards;
   @observable int score = 0;
   
-  Trie trie;
+  TrieNode trie;
   Boggle boggle;
   
   makeBoard() => boggle.letterList.map((s)=> new Face(s)).toList();
-    
-  set letters(String s) {
-    if (s == null) s = Boggle.DEFAULT_DICE;
-    boggle = new Boggle(s);
-    boards = [makeBoard()];
-  }
-  
+      
   set curWord(String word) {
     var w = (word == null) ? "" : word.trim().split('[')[0].replaceAll('qu', 'q');
     var paths = boggle.getWordPaths(w);
@@ -40,7 +37,7 @@ class MainApp extends PolymerElement {
     boards = [];
     for (var path in paths) {
       var board = makeBoard(); 
-      final DIR_OFFS = Boggle.offsets(5);
+      final DIR_OFFS = Boggle.offsets(boggle.width);
       for (int i = 1; i < path.length; i++) {
         var pc = path[i];
         var pp = path[i - 1];
@@ -69,14 +66,38 @@ class MainApp extends PolymerElement {
   
   MainApp.created() : super.created()
   {
+    var letters = Uri.base.queryParameters['letters'];
+    if (letters == null) letters = DEFAULT_LETTERS;
+
+    var dictionary = Uri.base.queryParameters['dictionary'];
+    if (dictionary == null) dictionary = DEFAULT_DICTIONARY;
+
+    var width = int.parse(Uri.base.queryParameters['width']);
+    if (width == null) width = DEFAULT_BOARD_W;
+
+    var height = int.parse(Uri.base.queryParameters['height']);
+    if (height == null) height = DEFAULT_BOARD_H;
+        
     //  load the dictionary
-    HttpRequest.getString('data/words.txt').then((String dict) {
-      letters = Uri.base.queryParameters['letters'];
-      trie = new Trie(Trie.parseDictionary(dict), Boggle.scoreWord);
+    HttpRequest.getString(dictionary).then((String dict) {
+      boggle = new Boggle(width, height, letters);
+      boards = [makeBoard()];
+          
+      trie = new TrieNode();
+      trie.buildTrie(parseDictionary(dict));
       gatherMatchingWords();      
       curWord = Uri.base.queryParameters['word'];
     });
   }
 
   onHovered(MouseEvent event) => curWord = (event.target as Element).innerHtml;
+  
+  static List<String> parseDictionary(String dict, [bool skipImpossible = true]) {
+    var re = new RegExp("q(?!u)|-|'|/");
+    return dict
+        .split(' ')
+        .where((s) => !skipImpossible || !re.hasMatch(s))
+        .map((s) => s.trim().toLowerCase().replaceAll('qu', 'q'))
+        .toList()..sort();
+  }
 }
